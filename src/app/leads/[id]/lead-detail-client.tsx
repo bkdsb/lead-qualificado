@@ -1,0 +1,474 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { STAGE_LABELS, STAGE_COLORS, SCORE_BAND_LABELS, SCORE_BAND_COLORS, MATCH_STRENGTH_LABELS, MATCH_STRENGTH_COLORS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES } from '@/lib/utils/constants';
+import type { DbLead, DbLeadIdentitySignal, DbLeadNote, DbLeadStageHistory, DbLeadScoreEvent, DbMetaEventDispatch, LeadStage, ScoreBand, MatchStrength } from '@/types/database';
+
+interface LeadData {
+  lead: DbLead;
+  signals: DbLeadIdentitySignal[];
+  notes: DbLeadNote[];
+  stageHistory: DbLeadStageHistory[];
+  scoreEvents: DbLeadScoreEvent[];
+  dispatches: DbMetaEventDispatch[];
+  matchAnalysis: {
+    strength: MatchStrength;
+    numericValue: number;
+    availableSignals: string[];
+    missingSignals: string[];
+    warnings: string[];
+    recommendations: string[];
+  };
+}
+
+export default function LeadDetailClient({ leadId }: { leadId: string }) {
+  const router = useRouter();
+  const [data, setData] = useState<LeadData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'timeline' | 'signals' | 'dispatches' | 'notes'>('timeline');
+
+  // Modal states
+  const [showDispatch, setShowDispatch] = useState(false);
+  const [dispatchEvent, setDispatchEvent] = useState('Lead');
+  const [dispatchStep, setDispatchStep] = useState(1);
+  const [confirmText, setConfirmText] = useState('');
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<Record<string, unknown> | null>(null);
+  const [previewPayload, setPreviewPayload] = useState<Record<string, unknown> | null>(null);
+
+  // Note
+  const [noteContent, setNoteContent] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch(`/api/leads/${leadId}`);
+    const json = await res.json();
+    setData(json);
+    setLoading(false);
+  }, [leadId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  async function handleStageChange(toStage: string) {
+    await fetch(`/api/leads/${leadId}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_stage: toStage }),
+    });
+    fetchData();
+  }
+
+  async function handleScoreEvent(eventType: string) {
+    await fetch(`/api/leads/${leadId}/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: eventType }),
+    });
+    fetchData();
+  }
+
+  async function handleAddNote(e: React.FormEvent) {
+    e.preventDefault();
+    setAddingNote(true);
+    await fetch(`/api/leads/${leadId}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: noteContent }),
+    });
+    setNoteContent('');
+    setAddingNote(false);
+    fetchData();
+  }
+
+  async function openDispatchModal(eventName: string) {
+    setDispatchEvent(eventName);
+    setDispatchStep(1);
+    setConfirmText('');
+    setDispatchResult(null);
+    setShowDispatch(true);
+
+    // Load preview
+    const res = await fetch('/api/meta/preview-payload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: leadId,
+        event_name: eventName,
+        is_test: true,
+        custom_data: eventName === 'Purchase' ? { value: data?.lead.purchase_value || 0, currency: data?.lead.currency || 'BRL' } : undefined,
+      }),
+    });
+    const json = await res.json();
+    setPreviewPayload(json);
+  }
+
+  async function handleDispatch() {
+    setDispatching(true);
+    const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
+    const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR PURCHASE' : 'ENVIAR';
+
+    const res = await fetch('/api/meta/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: leadId,
+        event_name: dispatchEvent,
+        is_test: true,
+        confirmation_text: requiresConfirm ? confirmText : undefined,
+        custom_data: dispatchEvent === 'Purchase' ? { value: data?.lead.purchase_value || 0, currency: data?.lead.currency || 'BRL' } : undefined,
+      }),
+    });
+    const json = await res.json();
+    setDispatchResult(json);
+    setDispatching(false);
+    if (json.success) fetchData();
+  }
+
+  if (loading || !data) {
+    return <div style={{ padding: 'var(--space-8)', color: 'var(--text-muted)' }}>Carregando...</div>;
+  }
+
+  const { lead, signals, notes, stageHistory, scoreEvents, dispatches, matchAnalysis } = data;
+  const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
+  const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR PURCHASE' : 'ENVIAR';
+  const allowedTransitions = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
+
+  return (
+    <>
+      {/* Header */}
+      <div className="app-header">
+        <div className="flex items-center gap-3">
+          <button className="btn btn-ghost" onClick={() => router.push('/leads')}>← Leads</button>
+          <span className="app-header-title">{lead.name || 'Sem nome'}</span>
+          <span className="badge" style={{
+            background: `${STAGE_COLORS[lead.stage as LeadStage]}18`,
+            color: STAGE_COLORS[lead.stage as LeadStage],
+          }}>
+            {STAGE_LABELS[lead.stage as LeadStage]}
+          </span>
+        </div>
+      </div>
+
+      <div className="app-content">
+        {/* Info Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+          <div className="card">
+            <div className="card-title">Score</div>
+            <div className="card-value">{lead.score}</div>
+            <span className="badge" style={{
+              background: `${SCORE_BAND_COLORS[lead.score_band as ScoreBand]}18`,
+              color: SCORE_BAND_COLORS[lead.score_band as ScoreBand],
+            }}>
+              {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
+            </span>
+          </div>
+          <div className="card">
+            <div className="card-title">Match Strength</div>
+            <div className="card-value" style={{ fontSize: 20 }}>
+              {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}
+            </div>
+            <div className="text-xs text-muted mt-2">{matchAnalysis.availableSignals.length} sinais disponíveis</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Contato</div>
+            <div style={{ fontSize: 13 }}>{lead.email || '—'}</div>
+            <div style={{ fontSize: 13 }}>{lead.phone || '—'}</div>
+            <div className="text-xs text-muted mt-2">Origem: {lead.source}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Campanha</div>
+            <div style={{ fontSize: 12 }}>{lead.campaign_name || '—'}</div>
+            <div className="text-xs text-muted">{lead.adset_name || ''}</div>
+            <div className="text-xs text-muted">{lead.ad_name || ''}</div>
+          </div>
+        </div>
+
+        {/* Match Warnings */}
+        {matchAnalysis.warnings.length > 0 && (
+          <div style={{
+            padding: 'var(--space-3) var(--space-4)',
+            background: 'var(--warning-subtle)',
+            border: '1px solid rgba(234,179,8,0.2)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 'var(--space-4)',
+            fontSize: 12,
+            color: 'var(--warning)',
+          }}>
+            {matchAnalysis.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
+          </div>
+        )}
+
+        {/* Actions Bar */}
+        <div className="flex items-center gap-2 mb-6" style={{ flexWrap: 'wrap' }}>
+          {allowedTransitions.map(s => (
+            <button key={s} className="btn btn-secondary btn-sm" onClick={() => handleStageChange(s)}>
+              → {STAGE_LABELS[s]}
+            </button>
+          ))}
+          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          {META_EVENT_NAMES.map(ev => (
+            <button key={ev} className="btn btn-primary btn-sm" onClick={() => openDispatchModal(ev)}>
+              Enviar {ev}
+            </button>
+          ))}
+          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('cta_click')}>+CTA</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('conversation_started')}>+Conversa</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('proposal_sent')}>+Proposta</button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4">
+          {(['timeline', 'signals', 'dispatches', 'notes'] as const).map(tab => (
+            <button
+              key={tab}
+              className={`btn btn-ghost btn-sm ${activeTab === tab ? 'active' : ''}`}
+              style={activeTab === tab ? { background: 'var(--accent-subtle)', color: 'var(--accent)' } : {}}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === 'timeline' ? 'Timeline' : tab === 'signals' ? 'Sinais' : tab === 'dispatches' ? 'Dispatches Meta' : 'Notas'}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'timeline' && (
+          <div className="card">
+            <div className="timeline">
+              {[...stageHistory.map(h => ({ type: 'stage' as const, date: h.created_at, data: h })),
+                ...scoreEvents.map(e => ({ type: 'score' as const, date: e.created_at, data: e })),
+                ...dispatches.map(d => ({ type: 'dispatch' as const, date: d.dispatched_at, data: d })),
+                ...notes.map(n => ({ type: 'note' as const, date: n.created_at, data: n })),
+              ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((item, i) => (
+                <div key={i} className={`timeline-item ${item.type}`}>
+                  <div className="timeline-content">
+                    {item.type === 'stage' && (
+                      <>
+                        <div className="timeline-label">
+                          {STAGE_LABELS[(item.data as DbLeadStageHistory).from_stage as LeadStage] || 'Início'} → {STAGE_LABELS[(item.data as DbLeadStageHistory).to_stage as LeadStage]}
+                        </div>
+                        <div className="timeline-meta">{(item.data as DbLeadStageHistory).reason || ''}</div>
+                      </>
+                    )}
+                    {item.type === 'score' && (
+                      <div className="timeline-label">
+                        Score: {(item.data as DbLeadScoreEvent).event_type} ({(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points})
+                        {(item.data as DbLeadScoreEvent).note && <span className="text-muted"> — {(item.data as DbLeadScoreEvent).note}</span>}
+                      </div>
+                    )}
+                    {item.type === 'dispatch' && (
+                      <>
+                        <div className="timeline-label">
+                          Meta CAPI: {(item.data as DbMetaEventDispatch).event_name}
+                          <span className={`badge ${(item.data as DbMetaEventDispatch).status === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ marginLeft: 8 }}>
+                            {(item.data as DbMetaEventDispatch).status}
+                          </span>
+                        </div>
+                        <div className="timeline-meta">
+                          Match: {(item.data as DbMetaEventDispatch).match_strength_at_send} | Amb: {(item.data as DbMetaEventDispatch).environment}
+                        </div>
+                      </>
+                    )}
+                    {item.type === 'note' && (
+                      <div className="timeline-label">{(item.data as DbLeadNote).content}</div>
+                    )}
+                    <div className="timeline-meta">{new Date(item.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                  </div>
+                </div>
+              ))}
+              {stageHistory.length === 0 && scoreEvents.length === 0 && dispatches.length === 0 && notes.length === 0 && (
+                <div className="empty-state"><div className="empty-state-text">Nenhum evento ainda</div></div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'signals' && (
+          <div className="card">
+            <div className="card-title mb-4">Sinais de Identidade</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div>
+                <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Disponíveis</div>
+                <div className="signal-grid">
+                  {matchAnalysis.availableSignals.map(s => (
+                    <span key={s} className="signal-tag present">✓ {s}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Ausentes</div>
+                <div className="signal-grid">
+                  {matchAnalysis.missingSignals.map(s => (
+                    <span key={s} className="signal-tag missing">✕ {s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {matchAnalysis.recommendations.length > 0 && (
+              <div className="mt-4" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <strong>Recomendações:</strong>
+                <ul style={{ marginTop: 4, paddingLeft: 16 }}>
+                  {matchAnalysis.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'dispatches' && (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr><th>Evento</th><th>Amb</th><th>Status</th><th>Match</th><th>HTTP</th><th>Data</th><th>Payload</th></tr>
+              </thead>
+              <tbody>
+                {dispatches.length === 0 ? (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum dispatch</td></tr>
+                ) : dispatches.map(d => (
+                  <tr key={d.id}>
+                    <td style={{ fontWeight: 600 }}>{d.event_name}</td>
+                    <td><span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>{d.environment}</span></td>
+                    <td><span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>{d.status}</span></td>
+                    <td className="text-xs">{d.match_strength_at_send || '—'}</td>
+                    <td className="text-xs font-mono">{d.response_status || '—'}</td>
+                    <td className="text-xs text-muted">{new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td>
+                      <details>
+                        <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>ver</summary>
+                        <div className="payload-block mt-2">{JSON.stringify(d.payload_sent, null, 2)}</div>
+                        {d.response_body && (
+                          <>
+                            <div className="text-xs text-muted mt-2">Resposta:</div>
+                            <div className="payload-block mt-1">{JSON.stringify(d.response_body, null, 2)}</div>
+                          </>
+                        )}
+                      </details>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'notes' && (
+          <div className="card">
+            <form onSubmit={handleAddNote} className="flex gap-3 mb-4">
+              <input
+                className="form-input"
+                placeholder="Adicionar nota..."
+                value={noteContent}
+                onChange={e => setNoteContent(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="btn btn-primary btn-sm" disabled={addingNote || !noteContent.trim()}>Adicionar</button>
+            </form>
+            {notes.map(n => (
+              <div key={n.id} style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 13 }}>{n.content}</div>
+                <div className="text-xs text-muted mt-1">{new Date(n.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+              </div>
+            ))}
+            {notes.length === 0 && <div className="text-muted" style={{ fontSize: 13 }}>Nenhuma nota</div>}
+          </div>
+        )}
+      </div>
+
+      {/* Dispatch Modal */}
+      {showDispatch && (
+        <div className="modal-overlay" onClick={() => setShowDispatch(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <h2 className="modal-title">Enviar {dispatchEvent} (Teste)</h2>
+
+            {dispatchResult ? (
+              <div>
+                <div className={`badge ${dispatchResult.success ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: 14, padding: '6px 16px', marginBottom: 'var(--space-4)' }}>
+                  {dispatchResult.success ? '✓ Enviado com sucesso' : `✕ Erro: ${String(dispatchResult.error)}`}
+                </div>
+                {Array.isArray(dispatchResult.warnings) && (dispatchResult.warnings as string[]).length > 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>
+                    {(dispatchResult.warnings as string[]).map((w, i) => <div key={i}>⚠ {w}</div>)}
+                  </div>
+                ) : null}
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowDispatch(false)}>Fechar</button>
+                </div>
+              </div>
+            ) : dispatchStep === 1 ? (
+              <div>
+                {/* Step 1: Summary + Preview */}
+                <div className="text-sm text-secondary mb-4">
+                  Lead: <strong>{lead.name}</strong> | Match: <strong>{matchAnalysis.strength}</strong> | Score: <strong>{lead.score}</strong>
+                </div>
+                {previewPayload && (
+                  <>
+                    <div className="text-xs font-semibold text-muted mb-1">SINAIS UTILIZADOS</div>
+                    <div className="signal-grid mb-4">
+                      {(previewPayload.signals_used as string[] || []).map(s => <span key={s} className="signal-tag present">✓ {s}</span>)}
+                      {(previewPayload.signals_missing as string[] || []).map(s => <span key={s} className="signal-tag missing">✕ {s}</span>)}
+                    </div>
+                    {(previewPayload.warnings as string[] || []).length > 0 && (
+                      <div style={{ fontSize: 12, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>
+                        {(previewPayload.warnings as string[]).map((w, i) => <div key={i}>⚠ {w}</div>)}
+                      </div>
+                    )}
+                    <div className="text-xs font-semibold text-muted mb-1">PAYLOAD</div>
+                    <div className="payload-block">{JSON.stringify(previewPayload.payload, null, 2)}</div>
+                  </>
+                )}
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowDispatch(false)}>Cancelar</button>
+                  {requiresConfirm ? (
+                    <button className="btn btn-primary" onClick={() => setDispatchStep(2)}>Continuar →</button>
+                  ) : (
+                    <button className="btn btn-primary" onClick={handleDispatch} disabled={dispatching}>
+                      {dispatching ? 'Enviando...' : 'Enviar Evento'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* Step 2: Type confirmation */}
+                <div style={{
+                  padding: 'var(--space-4)',
+                  background: 'var(--danger-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 'var(--space-4)',
+                  fontSize: 13,
+                  color: 'var(--danger)',
+                }}>
+                  ⚠ Ação irreversível. Este evento será enviado para a Meta.
+                </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    Digite &quot;{requiredText}&quot; para confirmar
+                  </label>
+                  <input
+                    className="form-input"
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    placeholder={requiredText}
+                    autoFocus
+                  />
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setDispatchStep(1)}>← Voltar</button>
+                  <button
+                    className="btn btn-danger"
+                    onClick={handleDispatch}
+                    disabled={dispatching || confirmText !== requiredText}
+                  >
+                    {dispatching ? 'Enviando...' : `Confirmar ${dispatchEvent}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
