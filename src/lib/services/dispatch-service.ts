@@ -17,6 +17,7 @@ interface DispatchOptions {
   actorId: string;
   isTest: boolean;
   confirmedAt?: string;
+  overrideIdempotency?: boolean;
 }
 
 interface DispatchResult {
@@ -48,30 +49,32 @@ export async function dispatchMetaEvent(options: DispatchOptions): Promise<Dispa
   const testEventCode = options.isTest ? env.META_TEST_EVENT_CODE : undefined;
 
   // 1. Idempotency check — block if same event already succeeded for this lead+env
-  const { data: existing } = await supabase
-    .from('meta_event_dispatches')
-    .select('id')
-    .eq('lead_id', options.lead.id)
-    .eq('event_name', options.eventName)
-    .eq('environment', environment)
-    .eq('status', 'success')
-    .limit(1);
+  if (!options.overrideIdempotency) {
+    const { data: existing } = await supabase
+      .from('meta_event_dispatches')
+      .select('id')
+      .eq('lead_id', options.lead.id)
+      .eq('event_name', options.eventName)
+      .eq('environment', environment)
+      .eq('status', 'success')
+      .limit(1);
 
-  if (existing && existing.length > 0) {
-    return {
-      success: false,
-      dispatchId: existing[0].id,
-      payloadResult: {
-        payload: { data: [] },
-        signalsUsed: [],
-        signalsMissing: [],
-        matchStrength: 'very_low',
-        warnings: [],
-      },
-      responseStatus: 0,
-      responseBody: {},
-      error: `Evento ${options.eventName} já enviado com sucesso para este lead neste ambiente. Use override para reenviar.`,
-    };
+    if (existing && existing.length > 0) {
+      return {
+        success: false,
+        dispatchId: existing[0].id,
+        payloadResult: {
+          payload: { data: [] },
+          signalsUsed: [],
+          signalsMissing: [],
+          matchStrength: 'very_low',
+          warnings: [],
+        },
+        responseStatus: 0,
+        responseBody: {},
+        error: `Evento ${options.eventName} já enviado com sucesso para este lead neste ambiente. Use override para reenviar.`,
+      };
+    }
   }
 
   // 2. Build payload
