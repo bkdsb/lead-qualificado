@@ -1,44 +1,108 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap');
 
 @import "tailwindcss";
-@config "../../tailwind.config.ts";
 
+/* ──────────────────────────────────────────────
+   Tailwind v4 Theme — Custom Design Tokens
+   Registers custom slate scale + shadows + fonts
+   so that classes like bg-slate-1, text-slate-9 work.
+   ────────────────────────────────────────────── */
+@theme {
+  --color-slate-1: #111110;
+  --color-slate-2: #191918;
+  --color-slate-3: #222221;
+  --color-slate-4: #2a2a28;
+  --color-slate-5: #31312e;
+  --color-slate-6: #3b3a37;
+  --color-slate-7: #53534e;
+  --color-slate-8: #706e67;
+  --color-slate-9: #ededec;
+  --color-slate-10: #ffffff;
+
+  --color-primary: #ededec;
+  --color-primary-inverse: #111110;
+  --color-primary-hover: #ffffff;
+  --color-primary-foreground: #111110;
+
+  --color-surface: #111110;
+  --color-surface-elevated: #191918;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Newsreader', serif;
+  --font-mono: 'SF Mono', ui-monospace, monospace;
+
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-popover: 0 16px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-inner-light: inset 0 1px 0 rgba(255,255,255,0.1);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --animate-fade-in: fade-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-up: slide-up 250ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes slide-up {
+    0% { opacity: 0; transform: translateY(4px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Base Layer — Root Vars + Body + Selection
+   ────────────────────────────────────────────── */
 @layer base {
   :root {
     --bg-root: #0a0a09;
     --bg-surface: #111110;
     --bg-surface-hover: #191918;
-    
+
     --border-subtle: rgba(255, 255, 255, 0.04);
     --border-default: rgba(255, 255, 255, 0.08);
 
     --text-primary: #ededec;
     --text-secondary: #a1a09a;
+    --text-muted: #53534e;
     --text-inverse: #111110;
 
     --radius-sm: 4px;
     --radius-md: 6px;
     --radius-lg: 8px;
 
-    --font-inter: 'Inter', sans-serif;
-    --font-serif: 'Newsreader', serif;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    --accent: #a1a09a;
+    --danger: #f87171;
+    --danger-subtle: rgba(248, 113, 113, 0.1);
   }
 
   body {
     background-color: var(--bg-root);
     color: var(--text-primary);
-    font-family: var(--font-inter);
+    font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
-  
+
   ::selection {
     background-color: #706e67;
     color: #ffffff;
   }
 }
 
+/* ──────────────────────────────────────────────
+   Utility Layer — Card Hover, Focus Ring
+   ────────────────────────────────────────────── */
 @layer utilities {
   .subtle-border {
     border: 1px solid rgba(255,255,255,0.06);
@@ -60,7 +124,219 @@
   }
 }
 
-/* Custom scrollbar */
+/* ──────────────────────────────────────────────
+   Legacy Layout Classes
+   Used by pages not yet migrated (login, events)
+   ────────────────────────────────────────────── */
+
+/* App Shell Page Headers */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.app-header-title {
+  font-family: 'Newsreader', serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.app-content {
+  padding: 24px;
+  flex: 1;
+}
+
+/* Form Elements (Login) */
+.form-group {
+  margin-bottom: 16px;
+}
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.form-input:focus {
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
+}
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Button (Login) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  border-color: var(--text-primary);
+}
+.btn-primary:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+/* Badge (Events legacy) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+.badge-success {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+.badge-danger {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+.badge-warning {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+  border-color: rgba(250, 204, 21, 0.2);
+}
+.badge-neutral {
+  color: #a1a09a;
+  background: rgba(161, 160, 154, 0.1);
+  border-color: rgba(161, 160, 154, 0.2);
+}
+
+/* Table (Events legacy) */
+.table-container {
+  overflow-x: auto;
+}
+.table-container table {
+  width: 100%;
+  font-size: 13px;
+  text-align: left;
+  border-collapse: collapse;
+}
+.table-container thead {
+  background: rgba(25, 25, 24, 0.5);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.table-container th, .table-container td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.table-container tbody tr:hover {
+  background: rgba(25, 25, 24, 0.5);
+}
+
+/* Payload block (Events legacy) */
+.payload-block {
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--bg-root);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+/* Mobile card list (Events legacy) */
+.desktop-table {
+  display: none;
+}
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mobile-card-item {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.mobile-card-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.mobile-card-item-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.mobile-card-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobile-card-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mobile-card-item-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.mobile-card-item-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+@media (min-width: 768px) {
+  .desktop-table {
+    display: block;
+  }
+  .mobile-card-list {
+    display: none;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Custom Scrollbar
+   ────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
