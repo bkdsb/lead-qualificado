@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // output: "standalone", // Removido para funcionar com o Preset "Next.js" na Hostinger
+  output: "standalone",
 };
 
 export default nextConfig;
