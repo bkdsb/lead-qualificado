@@ -10,12 +10,7 @@ export default async function LeadsPage() {
 
   return (
     <AppShell>
-      <div className="app-header">
-        <span className="app-header-title">Leads</span>
-      </div>
-      <div className="app-content">
-        <LeadsClient />
-      </div>
+      <LeadsClient />
     </AppShell>
   );
 }

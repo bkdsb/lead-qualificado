@@ -16,12 +16,7 @@ export default async function AuditPage() {
 
   return (
     <AppShell>
-      <div className="app-header">
-        <span className="app-header-title">Auditoria</span>
-      </div>
-      <div className="app-content">
-        <AuditClient logs={logs || []} />
-      </div>
+      <AuditClient logs={logs || []} />
     </AppShell>
   );
 }

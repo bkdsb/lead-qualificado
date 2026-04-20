@@ -51,13 +51,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="app-header">
-        <span className="app-header-title">Painel</span>
-        <span className="text-xs text-muted">Últimos 7 dias</span>
-      </div>
-      <div className="app-content">
-        <DashboardClient stats={stats} />
-      </div>
+      <DashboardClient stats={stats} />
     </AppShell>
   );
 }

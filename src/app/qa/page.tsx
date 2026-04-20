@@ -24,15 +24,10 @@ export default async function QAPage() {
 
   return (
     <AppShell>
-      <div className="app-header">
-        <span className="app-header-title">Controle de Qualidade</span>
-      </div>
-      <div className="app-content">
-        <QAClient
-          dispatches={recentDispatches || []}
-          dqSnapshots={dqSnapshots || []}
-        />
-      </div>
+      <QAClient
+        dispatches={recentDispatches || []}
+        dqSnapshots={dqSnapshots || []}
+      />
     </AppShell>
   );
 }

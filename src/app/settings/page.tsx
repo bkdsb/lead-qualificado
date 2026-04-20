@@ -20,15 +20,10 @@ export default async function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="app-header">
-        <span className="app-header-title">Configurações</span>
-      </div>
-      <div className="app-content">
-        <SettingsClient
-          settings={settings || []}
-          credentialRefs={credRefs || []}
-        />
-      </div>
+      <SettingsClient
+        settings={settings || []}
+        credentialRefs={credRefs || []}
+      />
     </AppShell>
   );
 }
