@@ -15,7 +15,11 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin') || '*';
+  // Restringindo a segurança: Apenas aceitar dados que vêm do seu site oficial (ou ambiente local de testes)
+  const incomingOrigin = request.headers.get('origin') || '';
+  const isAllowedOrigin = incomingOrigin === 'https://belegante.co' || incomingOrigin.includes('localhost');
+  const origin = isAllowedOrigin ? incomingOrigin : 'https://belegante.co';
+
   const corsHeaders = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'OPTIONS, POST',
