@@ -156,7 +156,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
   const { lead, signals, notes, stageHistory, scoreEvents, dispatches, matchAnalysis } = data;
   const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
-  const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR VENDA' : 'ENVIAR';
   const allowedTransitions = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
 
   const EVENT_LABELS: Record<string, string> = {
@@ -572,26 +571,30 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               </div>
             ) : (
               <div>
-                {/* Step 2: Confirmação */}
+                {/* Step 2: Confirmação inteligente */}
                 <div style={{
                   padding: 'var(--space-4)',
-                  background: 'var(--danger-subtle)',
+                  background: 'var(--warning-subtle)',
                   borderRadius: 'var(--radius-md)',
                   marginBottom: 'var(--space-4)',
                   fontSize: 13,
-                  color: 'var(--danger)',
+                  color: 'var(--warning)',
+                  lineHeight: 1.6,
                 }}>
-                  ⚠ Ação irreversível. Este evento será enviado para a Meta.
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Você está prestes a enviar um evento real</div>
+                  <div style={{ opacity: 0.85 }}>
+                    O evento <strong>{EVENT_LABELS[dispatchEvent] || dispatchEvent}</strong> será enviado para a API de Conversões da Meta para o lead <strong>{lead.name}</strong>. Essa ação não pode ser desfeita.
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">
-                    Digite &quot;{requiredText}&quot; para confirmar
+                    Para prosseguir, digite CONFIRMAR
                   </label>
                   <input
                     className="form-input"
                     value={confirmText}
-                    onChange={e => setConfirmText(e.target.value)}
-                    placeholder={requiredText}
+                    onChange={e => setConfirmText(e.target.value.toUpperCase())}
+                    placeholder="CONFIRMAR"
                     autoFocus
                   />
                 </div>
@@ -600,9 +603,9 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                   <button
                     className="btn btn-danger"
                     onClick={handleDispatch}
-                    disabled={dispatching || confirmText !== requiredText}
+                    disabled={dispatching || confirmText !== 'CONFIRMAR'}
                   >
-                    {dispatching ? 'Enviando...' : `Confirmar ${EVENT_LABELS[dispatchEvent] || dispatchEvent}`}
+                    {dispatching ? 'Enviando...' : `Enviar ${EVENT_LABELS[dispatchEvent] || dispatchEvent}`}
                   </button>
                 </div>
               </div>

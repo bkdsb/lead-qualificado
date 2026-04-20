@@ -31,12 +31,11 @@ export async function POST(request: NextRequest) {
 
   // Dual confirmation check for QualifiedLead and Purchase
   if (DUAL_CONFIRM_EVENTS.includes(event_name)) {
-    const requiredText = event_name === 'Purchase' ? 'CONFIRMAR PURCHASE' : 'ENVIAR';
-    if (confirmation_text !== requiredText) {
+    if (confirmation_text !== 'CONFIRMAR') {
       return NextResponse.json({
-        error: `Confirmação obrigatória. Digite "${requiredText}" para confirmar.`,
+        error: 'Confirmação obrigatória. Digite "CONFIRMAR" para prosseguir.',
         requires_confirmation: true,
-        confirmation_text_required: requiredText,
+        confirmation_text_required: 'CONFIRMAR',
       }, { status: 400 });
     }
   }
