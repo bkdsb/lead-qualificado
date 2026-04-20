@@ -60,11 +60,19 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
     fetchData();
   }
 
-  async function handleScoreEvent(eventType: string) {
+  async function handleScoreEvent(eventType: string, customPoints?: number) {
     await fetch(`/api/leads/${leadId}/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: eventType }),
+      body: JSON.stringify({ event_type: eventType, points: customPoints, note: customPoints !== undefined ? `Ajuste manual: ${customPoints}` : undefined }),
+    });
+    fetchData();
+  }
+
+  async function handleDeleteScoreEvent(eventId: string) {
+    if (!confirm('Remover este evento de score?')) return;
+    await fetch(`/api/leads/${leadId}/score?event_id=${eventId}`, {
+      method: 'DELETE',
     });
     fetchData();
   }
@@ -217,6 +225,10 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('cta_click')}>+CTA</button>
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('conversation_started')}>+Conversa</button>
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('proposal_sent')}>+Proposta</button>
+          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_response')}>−Sem Resposta</button>
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('curious_no_fit')}>−Curioso</button>
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_budget')}>−Sem Budget</button>
         </div>
 
         {/* Tabs */}
@@ -253,9 +265,19 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                       </>
                     )}
                     {item.type === 'score' && (
-                      <div className="timeline-label">
-                        Score: {(item.data as DbLeadScoreEvent).event_type} ({(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points})
-                        {(item.data as DbLeadScoreEvent).note && <span className="text-muted"> — {(item.data as DbLeadScoreEvent).note}</span>}
+                      <div className="timeline-label flex items-center gap-2">
+                        <span>
+                          Score: {(item.data as DbLeadScoreEvent).event_type} ({(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points})
+                          {(item.data as DbLeadScoreEvent).note ? <span className="text-muted"> — {(item.data as DbLeadScoreEvent).note}</span> : null}
+                        </span>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ color: 'var(--danger)', fontSize: 11, padding: '0 4px' }}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id); }}
+                          title="Remover este score"
+                        >
+                          ✕
+                        </button>
                       </div>
                     )}
                     {item.type === 'dispatch' && (
