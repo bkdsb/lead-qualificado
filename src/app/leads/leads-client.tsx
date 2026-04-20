@@ -56,22 +56,22 @@ export default function LeadsClient() {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4" style={{ flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3 flex-wrap w-full" style={{ flex: 1, minWidth: 280 }}>
           <input
             type="text"
             className="form-input"
             placeholder="Buscar por nome, email ou phone..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{ width: 280 }}
+            style={{ flex: 1, minWidth: 200 }}
           />
-          <select className="form-input" value={stageFilter} onChange={e => { setStageFilter(e.target.value); setPage(1); }} style={{ width: 160 }}>
+          <select className="form-input" value={stageFilter} onChange={e => { setStageFilter(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: 150 }}>
             <option value="">Todos os estágios</option>
             {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Novo Lead</button>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ whiteSpace: 'nowrap' }}>+ Novo Lead</button>
       </div>
 
       {/* Table */}

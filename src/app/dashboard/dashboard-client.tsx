@@ -67,7 +67,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
       </div>
 
       {/* Action Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+      <div className="action-grid">
         <div className="card">
           <div className="card-title">Prontos p/ Qualified</div>
           <div className="card-value" style={{ color: 'var(--accent)' }}>{stats.readyForQualified}</div>

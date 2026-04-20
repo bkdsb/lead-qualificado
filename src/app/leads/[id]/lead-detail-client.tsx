@@ -161,7 +161,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
       <div className="app-content">
         {/* Info Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        <div className="stats-grid">
           <div className="card">
             <div className="card-title">Score</div>
             <div className="card-value">{lead.score}</div>
