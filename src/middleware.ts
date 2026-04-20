@@ -36,8 +36,8 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // Allow login page and auth callbacks without session
-  if (path === '/login' || path.startsWith('/api/auth')) {
+  // Allow login page, webhooks, and auth callbacks without session
+  if (path === '/login' || path.startsWith('/api/auth') || path.startsWith('/api/webhooks')) {
     if (user && path === '/login') {
       // Already logged in, redirect to dashboard
       const url = request.nextUrl.clone();
