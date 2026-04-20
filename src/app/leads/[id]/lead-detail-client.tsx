@@ -140,6 +140,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
         lead_id: leadId,
         event_name: dispatchEvent,
         is_test: true,
+        override_idempotency: true,
         confirmation_text: requiresConfirm ? confirmText : undefined,
         custom_data: dispatchEvent === 'Purchase' ? { value: purchaseValue, currency: currency } : undefined,
       }),
@@ -561,9 +562,19 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                 <div className="modal-footer">
                   <button className="btn btn-secondary" onClick={() => setShowDispatch(false)}>Cancelar</button>
                   {requiresConfirm ? (
-                    <button className="btn btn-primary" onClick={() => setDispatchStep(2)}>Continuar →</button>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => setDispatchStep(2)}
+                      disabled={dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0)}
+                    >
+                      Continuar →
+                    </button>
                   ) : (
-                    <button className="btn btn-primary" onClick={handleDispatch} disabled={dispatching}>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={handleDispatch} 
+                      disabled={dispatching || (dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0))}
+                    >
                       {dispatching ? 'Enviando...' : 'Enviar Evento'}
                     </button>
                   )}
