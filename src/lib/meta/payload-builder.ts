@@ -73,8 +73,14 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     const value = getSignal(signalType);
     if (value && value.trim()) {
       const hashed = hashSignal(signalType, value);
-      (userData[metaField] as string[]) = [hashed];
-      signalsUsed.push(signalType);
+      if (hashed) {
+        (userData[metaField] as string[]) = [hashed];
+        signalsUsed.push(signalType);
+      } else {
+        if (['email', 'phone'].includes(signalType)) {
+          signalsMissing.push(signalType);
+        }
+      }
     } else {
       if (['email', 'phone'].includes(signalType)) {
         signalsMissing.push(signalType);
@@ -84,18 +90,23 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
 
   // Also check lead's direct email/phone fields as fallback
   if (!userData.em && lead.email) {
-    userData.em = [hashSignal('email', lead.email)];
-    signalsUsed.push('email');
-    // Remove from missing if it was added
-    const idx = signalsMissing.indexOf('email');
-    if (idx > -1) signalsMissing.splice(idx, 1);
+    const hashedEm = hashSignal('email', lead.email);
+    if (hashedEm) {
+      userData.em = [hashedEm];
+      signalsUsed.push('email');
+      const idx = signalsMissing.indexOf('email');
+      if (idx > -1) signalsMissing.splice(idx, 1);
+    }
   }
 
   if (!userData.ph && lead.phone) {
-    userData.ph = [hashSignal('phone', lead.phone)];
-    signalsUsed.push('phone');
-    const idx = signalsMissing.indexOf('phone');
-    if (idx > -1) signalsMissing.splice(idx, 1);
+    const hashedPh = hashSignal('phone', lead.phone);
+    if (hashedPh) {
+      userData.ph = [hashedPh];
+      signalsUsed.push('phone');
+      const idx = signalsMissing.indexOf('phone');
+      if (idx > -1) signalsMissing.splice(idx, 1);
+    }
   }
 
   // Process unhashable signals
