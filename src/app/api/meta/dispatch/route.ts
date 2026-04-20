@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     custom_data,
     is_test = true,
     confirmation_text,
+    override_idempotency,
   } = body;
 
   if (!lead_id || !event_name) {
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
     customData: custom_data,
     actorId: user.id,
     isTest: is_test,
+    overrideIdempotency: override_idempotency,
     confirmedAt: DUAL_CONFIRM_EVENTS.includes(event_name)
       ? new Date().toISOString()
       : undefined,

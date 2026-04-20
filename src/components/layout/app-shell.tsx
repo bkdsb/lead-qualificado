@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { LayoutDashboard, Users, Send, ShieldCheck, Activity, Settings, LogOut, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Painel', icon: '◉' },
-  { href: '/leads', label: 'Leads', icon: '☰' },
-  { href: '/events', label: 'Envios Meta', icon: '↗' },
-  { href: '/qa', label: 'Qualidade', icon: '✓' },
-  { href: '/audit', label: 'Auditoria', icon: '⊙' },
-  { href: '/settings', label: 'Configurações', icon: '⚙' },
+  { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+  { href: '/leads', label: 'Leads', icon: Users },
+  { href: '/events', label: 'Envios Meta', icon: Send },
+  { href: '/qa', label: 'Qualidade', icon: ShieldCheck },
+  { href: '/audit', label: 'Auditoria', icon: Activity },
+  { href: '/settings', label: 'Configurações', icon: Settings },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -33,81 +36,134 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div className="flex min-h-screen w-full flex-col md:flex-row bg-slate-1 text-slate-9 selection:bg-slate-8 selection:text-white">
       {isTest && (
-        <div className="test-banner">
-          ● MODO TESTE — Eventos usarão test_event_code
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-500 text-[11px] font-medium tracking-widest uppercase py-1 text-center backdrop-blur-md">
+          ● Modo Teste Ativo
         </div>
       )}
-      
-      {/* Mobile Header (Only visible on mobile via CSS) */}
-      <div className="mobile-header">
-        <div className="sidebar-logo" style={{ padding: 0, border: 'none', marginBottom: 0 }}>Lead Qualificado</div>
-        <button className="hamburger-btn" onClick={() => setIsMobileMenuOpen(true)}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
+
+      {/* Mobile Topbar */}
+      <div className={cn("md:hidden sticky top-0 z-40 flex items-center justify-between p-4 border-b border-white/[0.04] bg-slate-1/80 backdrop-blur-xl", isTest && "mt-6")}>
+        <span className="font-serif italic text-lg tracking-tight">Lead Qualificado</span>
+        <button className="p-2 text-slate-7 focus-ring rounded-md" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="app-layout">
-        <div className={`sidebar-overlay ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)} />
-        
-        <aside className={`app-sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={isTest ? { top: 28 } : undefined}>
-          <div className="sidebar-logo flex items-center justify-between">
-            <span>Lead Qualificado</span>
-            <button className="close-sidebar-btn" onClick={() => setIsMobileMenuOpen(false)}>✕</button>
-          </div>
-          <nav className="sidebar-nav">
-            <div className="sidebar-section-label">Principal</div>
-            {NAV_ITEMS.slice(0, 2).map(item => (
-              <button
-                key={item.href}
-                className={`sidebar-link ${pathname === item.href || (item.href === '/leads' && pathname.startsWith('/leads/')) ? 'active' : ''}`}
-                onClick={() => handleNavClick(item.href)}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-            <div className="sidebar-section-label">API de Conversões</div>
-            {NAV_ITEMS.slice(2, 4).map(item => (
-              <button
-                key={item.href}
-                className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-                onClick={() => handleNavClick(item.href)}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
+      {/* Sidebar */}
+      <motion.aside
+        initial={false}
+        animate={{ x: isMobileMenuOpen ? 0 : '-100%' }}
+        className={cn(
+          "fixed md:sticky top-0 left-0 bottom-0 z-50 w-[260px] border-r border-white/[0.04] bg-slate-2 flex flex-col md:translate-x-0 transition-transform duration-300 ease-out-expo",
+          isMobileMenuOpen ? "translate-x-0 shadow-popover" : "-translate-x-full",
+          isTest ? "md:top-6" : ""
+        )}
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.04]">
+          <span className="font-serif italic text-xl tracking-tight text-white/90">Lead Qualificado</span>
+          <button className="md:hidden p-1 text-slate-7" onClick={() => setIsMobileMenuOpen(false)}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-            <div className="sidebar-section-label">Sistema</div>
-            {NAV_ITEMS.slice(4).map(item => (
-              <button
-                key={item.href}
-                className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-                onClick={() => handleNavClick(item.href)}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          <div className="sidebar-footer">
-            <button className="sidebar-link" onClick={handleLogout} style={{ color: 'var(--text-muted)' }}>
-              ← Sair
-            </button>
+        <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto">
+          <div>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-slate-7">Principal</div>
+            <div className="space-y-1">
+              {NAV_ITEMS.slice(0, 2).map(item => {
+                const active = pathname === item.href || (item.href === '/leads' && pathname.startsWith('/leads/'));
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => handleNavClick(item.href)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group",
+                      active ? "bg-slate-3 text-slate-10" : "text-slate-8 hover:bg-slate-3/50 hover:text-slate-9"
+                    )}
+                  >
+                    <item.icon className={cn("w-4 h-4 transition-transform duration-200 group-hover:scale-110", active && "text-white")} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </aside>
-        
-        <main className="app-main" style={isTest ? { paddingTop: 28 } : undefined}>
-          {children}
-        </main>
-      </div>
-    </>
+
+          <div>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-slate-7">CAPI</div>
+            <div className="space-y-1">
+              {NAV_ITEMS.slice(2, 4).map(item => {
+                const active = pathname === item.href;
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => handleNavClick(item.href)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group",
+                      active ? "bg-slate-3 text-slate-10" : "text-slate-8 hover:bg-slate-3/50 hover:text-slate-9"
+                    )}
+                  >
+                    <item.icon className={cn("w-4 h-4 transition-transform duration-200 group-hover:scale-110", active && "text-white")} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-slate-7">Sistema</div>
+            <div className="space-y-1">
+              {NAV_ITEMS.slice(4).map(item => {
+                const active = pathname === item.href;
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => handleNavClick(item.href)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group",
+                      active ? "bg-slate-3 text-slate-10" : "text-slate-8 hover:bg-slate-3/50 hover:text-slate-9"
+                    )}
+                  >
+                    <item.icon className={cn("w-4 h-4 transition-transform duration-200 group-hover:scale-110", active && "text-white")} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-white/[0.04]">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-7 hover:bg-slate-3/50 hover:text-slate-9 transition-all duration-200"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className={cn("flex-1 min-w-0 flex flex-col", isTest && "pt-6 md:pt-6")}>
+        {children}
+      </main>
+    </div>
   );
 }

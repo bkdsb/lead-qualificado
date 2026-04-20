@@ -1,6 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Settings2, Activity, Play, CheckCircle2, ShieldCheck, Database, SlidersHorizontal, Terminal, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface Setting {
   id: string;
@@ -15,16 +21,6 @@ interface CredentialRef {
   credential_type: string;
   env_var_name: string;
   status: string;
-}
-
-function Tooltip({ label, tip }: { label: string; tip: string }) {
-  return (
-    <span className="tooltip-wrapper">
-      {label}
-      <span className="tooltip-icon">?</span>
-      <span className="tooltip-text">{tip}</span>
-    </span>
-  );
 }
 
 export default function SettingsClient({
@@ -67,106 +63,120 @@ export default function SettingsClient({
   const isTestMode = testModeEnabled?.value === true || testModeEnabled?.value === 'true';
 
   return (
-    <div style={{ maxWidth: 800 }}>
-      {/* Configuração CAPI */}
-      <div className="card mb-6">
-        <div className="card-header" style={{ flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <span className="card-title">
-            <Tooltip label="API de Conversões Meta" tip="A API de Conversões (CAPI) permite enviar eventos do servidor diretamente para a Meta, melhorando a atribuição e otimização das suas campanhas." />
-          </span>
-          <button className="btn btn-secondary btn-sm" onClick={verifyCapiConnection} disabled={verifying}>
-            {verifying ? 'Verificando...' : 'Verificar Conexão'}
-          </button>
-        </div>
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
+      <div className="space-y-1 mb-8">
+        <h1 className="font-serif italic text-3xl font-medium tracking-tight text-white mb-2">Configurações Base</h1>
+        <p className="text-sm text-slate-7">Gerencie variáveis de ambiente, estados globais e regras de negócio do motor.</p>
+      </div>
 
-        {capiStatus && (
-          <div style={{
-            padding: 'var(--space-3)',
-            background: capiStatus.success ? 'var(--success-subtle)' : 'var(--danger-subtle)',
-            color: capiStatus.success ? 'var(--success)' : 'var(--danger)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 13,
-            marginBottom: 'var(--space-4)',
-          }}>
-            {capiStatus.success ? '✓ Conexão OK' : `✕ ${capiStatus.error}`}
-          </div>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        {/* API CAPI Connection */}
+        <Card>
+          <CardHeader className="p-5 pb-4 border-b border-white/[0.04] flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-6" /> Meta Conversions API
+            </CardTitle>
+            <Button size="sm" variant="secondary" onClick={verifyCapiConnection} disabled={verifying} className="h-8">
+              {verifying ? 'Diagnosticando...' : 'Testar Conexão Graph'}
+            </Button>
+          </CardHeader>
+          <CardContent className="p-5 space-y-6">
+            {capiStatus && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                <div className={cn(
+                  "p-4 rounded-md border text-sm font-medium",
+                  capiStatus.success ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+                )}>
+                  {capiStatus.success ? '✓ Graph API Conexão Integrada c/ Sucesso' : `✕ Falha Crítica: ${capiStatus.error}`}
+                </div>
+              </motion.div>
+            )}
 
-        <div className="form-group">
-          <label className="form-label">
-            <Tooltip label="Modo Teste" tip="Quando ativo, todos os eventos enviados incluem o código de teste da Meta. Eventos de teste não afetam suas campanhas reais." />
-          </label>
-          <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
-            <button
-              className={`btn btn-sm ${isTestMode ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={toggleTestMode}
-              disabled={saving === 'test_mode_enabled'}
-            >
-              {isTestMode ? '● Ativo' : '○ Inativo'}
-            </button>
-            <span className="text-xs text-muted">
-              {isTestMode ? 'Eventos usarão código de teste' : 'Modo produção — eventos reais'}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Variáveis de Ambiente Configuradas</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-2)' }}>
-            {credentialRefs.map(ref => (
-              <div key={ref.id} className="flex items-center gap-2" style={{ padding: 'var(--space-2)', background: 'var(--bg-root)', borderRadius: 'var(--radius-sm)' }}>
-                <span className={`badge ${ref.status === 'active' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: 9 }}>
-                  {ref.status === 'active' ? 'Ativo' : 'Inativo'}
-                </span>
-                <span className="text-xs font-mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ref.env_var_name}</span>
-                <span className="text-xs text-muted">{ref.provider}</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-slate-9 mb-1">CAPI Test Mode</div>
+                  <div className="text-xs text-slate-6 max-w-xs">Sobrescreve eventos para usar test_event_code preservando infraestrutura de ML.</div>
+                </div>
+                <Button 
+                  onClick={toggleTestMode} 
+                  disabled={saving === 'test_mode_enabled'}
+                  className={cn("w-32", isTestMode ? "bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border-none" : "")}
+                >
+                  {isTestMode ? (
+                    <><Play className="w-3.5 h-3.5 mr-2" /> Ativado</>
+                  ) : (
+                    <><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Produção</>
+                  )}
+                </Button>
               </div>
+            </div>
+
+            <div className="pt-6 border-t border-white/[0.04]">
+              <div className="text-xs font-semibold text-slate-7 uppercase tracking-widest mb-4">Credentials Ledger</div>
+              <div className="space-y-2">
+                {credentialRefs.map(ref => (
+                  <div key={ref.id} className="flex items-center justify-between p-2.5 rounded bg-slate-2 border border-white/[0.02]">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge variant={ref.status === 'active' ? 'success' : 'danger'} className="scale-90 origin-left">
+                        {ref.status === 'active' ? 'ACTIVE' : 'VOID'}
+                      </Badge>
+                      <span className="text-xs font-mono text-slate-9 truncate max-w-[200px]">{ref.env_var_name}</span>
+                      <span className="text-[10px] text-slate-6 ml-auto">{ref.provider}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scoring System */}
+        <Card>
+          <CardHeader className="p-5 pb-4 border-b border-white/[0.04]">
+            <CardTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-slate-6" /> Algoritmo de Scoring
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 bg-slate-1">
+            {settings.filter(s => s.key === 'score_rules').map(s => (
+              <pre key={s.id} className="p-5 text-xs text-blue-300 font-mono overflow-auto h-[350px]">
+                {JSON.stringify(s.value, null, 2)}
+              </pre>
             ))}
-          </div>
-        </div>
+            <div className="p-4 border-t border-white/[0.04] bg-slate-2 flex items-center gap-2 text-xs text-slate-7">
+              <Info className="w-3.5 h-3.5" /> Edição deste objeto restrita ao backend (/api/settings)
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Regras de Pontuação */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <span className="card-title">
-            <Tooltip label="Regras de Pontuação" tip="Define quantos pontos cada ação do lead vale. O score determina quando o lead está pronto para avançar de estágio." />
-          </span>
-        </div>
-        {settings.filter(s => s.key === 'score_rules').map(s => (
-          <div key={s.id} className="payload-block">
-            {JSON.stringify(s.value, null, 2)}
-          </div>
-        ))}
-        <div className="text-xs text-muted mt-2">
-          Pontuação por tipo de evento. Editável via API (/api/settings).
-        </div>
-      </div>
-
-      {/* Todas as Configurações */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">Todas as Configurações</span>
-        </div>
-
-        {/* Desktop */}
-        <div className="table-container desktop-table" style={{ border: 'none' }}>
-          <table>
-            <thead>
+      {/* Raw Setup Values Table */}
+      <Card>
+        <CardHeader className="p-5 pb-4 border-b border-white/[0.04]">
+          <CardTitle className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-slate-6" /> Raw Database Settings
+          </CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-2/50 text-[11px] uppercase tracking-widest text-slate-7 font-semibold">
               <tr>
-                <th>Chave</th>
-                <th>Valor</th>
-                <th>Atualizado</th>
+                <th className="px-5 py-3 border-b border-white/[0.04]">Config Key</th>
+                <th className="px-5 py-3 border-b border-white/[0.04]">Valor Mutável</th>
+                <th className="px-5 py-3 border-b border-white/[0.04]">Last Write</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/[0.04]">
               {settings.map(s => (
-                <tr key={s.id}>
-                  <td className="font-mono text-xs" style={{ fontWeight: 600 }}>{s.key}</td>
-                  <td className="text-xs" style={{ maxWidth: 300 }}>
-                    <div className="truncate">{typeof s.value === 'string' ? s.value : JSON.stringify(s.value)}</div>
+                <tr key={s.id} className="hover:bg-slate-2/50 transition-colors">
+                  <td className="px-5 py-4 font-mono text-xs text-slate-9 font-medium">{s.key}</td>
+                  <td className="px-5 py-4">
+                    <pre className="text-xs text-slate-7 font-mono truncate max-w-sm whitespace-pre-wrap">
+                      {typeof s.value === 'string' ? s.value : JSON.stringify(s.value, null, 2)}
+                    </pre>
                   </td>
-                  <td className="text-xs text-muted">
+                  <td className="px-5 py-4 text-xs text-slate-6 font-mono">
                     {new Date(s.updated_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
                 </tr>
@@ -174,22 +184,7 @@ export default function SettingsClient({
             </tbody>
           </table>
         </div>
-
-        {/* Mobile */}
-        <div className="mobile-card-list">
-          {settings.map(s => (
-            <div key={s.id} className="mobile-card-item">
-              <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>{s.key}</div>
-              <div className="text-xs" style={{ wordBreak: 'break-all', color: 'var(--text-secondary)' }}>
-                {typeof s.value === 'string' ? s.value : JSON.stringify(s.value)}
-              </div>
-              <div className="text-xs text-muted mt-2">
-                {new Date(s.updated_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </Card>
     </div>
   );
 }

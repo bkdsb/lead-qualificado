@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     errorDispatchesResult,
     recentDispatchesResult,
   ] = await Promise.all([
-    supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'purchase').gte('closed_at', sevenDaysAgo),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'purchase').gte('updated_at', sevenDaysAgo),
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'qualified').gte('updated_at', sevenDaysAgo),
     supabase.from('leads').select('id', { count: 'exact', head: true }),
     supabase.from('leads').select('id', { count: 'exact', head: true }).in('stage', ['conversing', 'proposal']).gte('score', 50),

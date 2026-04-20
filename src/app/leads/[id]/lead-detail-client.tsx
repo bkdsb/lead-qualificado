@@ -2,8 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { STAGE_LABELS, STAGE_COLORS, SCORE_BAND_LABELS, SCORE_BAND_COLORS, MATCH_STRENGTH_LABELS, MATCH_STRENGTH_COLORS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES } from '@/lib/utils/constants';
+import { STAGE_LABELS, SCORE_BAND_LABELS, MATCH_STRENGTH_LABELS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES } from '@/lib/utils/constants';
 import type { DbLead, DbLeadIdentitySignal, DbLeadNote, DbLeadStageHistory, DbLeadScoreEvent, DbMetaEventDispatch, LeadStage, ScoreBand, MatchStrength } from '@/types/database';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tooltip } from '@/components/ui/tooltip';
+import { ArrowLeft, User, Phone, Mail, Globe, MapPin, Search, Send, Activity, ShieldCheck, HelpCircle, CheckCircle2, AlertTriangle, Plus, ChevronRight, Hash } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface LeadData {
   lead: DbLead;
@@ -20,16 +28,6 @@ interface LeadData {
     warnings: string[];
     recommendations: string[];
   };
-}
-
-function Tooltip({ label, tip }: { label: string; tip: string }) {
-  return (
-    <span className="tooltip-wrapper">
-      {label}
-      <span className="tooltip-icon">?</span>
-      <span className="tooltip-text">{tip}</span>
-    </span>
-  );
 }
 
 export default function LeadDetailClient({ leadId }: { leadId: string }) {
@@ -49,7 +47,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   const [purchaseValue, setPurchaseValue] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('BRL');
 
-  // Note
   const [noteContent, setNoteContent] = useState('');
   const [addingNote, setAddingNote] = useState(false);
 
@@ -114,7 +111,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
     setPurchaseValue(initialValue);
     setCurrency(initialCurrency);
 
-    // Load preview
     const res = await fetch('/api/meta/preview-payload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -152,10 +148,10 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   }
 
   if (loading || !data) {
-    return <div style={{ padding: 'var(--space-8)', color: 'var(--text-muted)' }}>Carregando...</div>;
+    return <div className="p-8 text-slate-7 text-sm font-medium tracking-tight">Recuperando registros neurais...</div>;
   }
 
-  const { lead, signals, notes, stageHistory, scoreEvents, dispatches, matchAnalysis } = data;
+  const { lead, notes, stageHistory, scoreEvents, dispatches, matchAnalysis } = data;
   const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
   const allowedTransitions = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
 
@@ -167,463 +163,394 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   };
 
   return (
-    <>
-      {/* Header */}
-      <div className="app-header">
-        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
-          <button className="btn btn-ghost" onClick={() => router.push('/leads')}>← Leads</button>
-          <span className="app-header-title">{lead.name || 'Sem nome'}</span>
-          <span className="badge" style={{
-            background: `${STAGE_COLORS[lead.stage as LeadStage]}18`,
-            color: STAGE_COLORS[lead.stage as LeadStage],
-          }}>
-            {STAGE_LABELS[lead.stage as LeadStage]}
-          </span>
-        </div>
-      </div>
-
-      <div className="app-content">
-        {/* Cards de Informação */}
-        <div className="stats-grid">
-          <div className="card">
-            <div className="card-title">Score</div>
-            <div className="card-value">{lead.score}</div>
-            <span className="badge" style={{
-              background: `${SCORE_BAND_COLORS[lead.score_band as ScoreBand]}18`,
-              color: SCORE_BAND_COLORS[lead.score_band as ScoreBand],
-            }}>
-              {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
-            </span>
-          </div>
-          <div className="card">
-            <div className="card-title">
-              <Tooltip label="Força do Match" tip="Qualidade dos dados de identidade deste lead para correspondência com a Meta. Quanto mais forte, melhor a atribuição das conversões." />
+    <div className="flex flex-col min-h-screen bg-slate-1 animate-fade-in">
+      {/* Editorial Header */}
+      <div className="sticky top-0 z-30 bg-slate-1/80 backdrop-blur-xl border-b border-white/[0.04] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/leads')} className="text-slate-8">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="font-serif italic text-2xl font-medium tracking-tight text-white leading-tight">
+              {lead.name || 'Sem nome'}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={lead.stage === 'purchase' ? 'success' : lead.stage === 'qualified' ? 'warning' : 'neutral'}>
+                {STAGE_LABELS[lead.stage as LeadStage]}
+              </Badge>
+              <span className="text-slate-6 text-xs font-mono tracking-wider">{lead.id.split('-')[0]}</span>
             </div>
-            <div className="card-value" style={{ fontSize: 20 }}>
-              {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}
-            </div>
-            <div className="text-xs text-muted mt-2">{matchAnalysis.availableSignals.length} sinais disponíveis</div>
-          </div>
-          <div className="card">
-            <div className="card-title">Contato</div>
-            <div style={{ fontSize: 13 }}>{lead.email || '—'}</div>
-            <div style={{ fontSize: 13 }}>{lead.phone || '—'}</div>
-            <div className="text-xs text-muted mt-2">Origem: {lead.source}</div>
-          </div>
-          <div className="card">
-            <div className="card-title">Campanha</div>
-            <div style={{ fontSize: 12 }}>{lead.campaign_name || '—'}</div>
-            <div className="text-xs text-muted">{lead.adset_name || ''}</div>
-            <div className="text-xs text-muted">{lead.ad_name || ''}</div>
           </div>
         </div>
-
-        {/* Alertas de Match */}
-        {matchAnalysis.warnings.length > 0 && (
-          <div style={{
-            padding: 'var(--space-3) var(--space-4)',
-            background: 'var(--warning-subtle)',
-            border: '1px solid rgba(234,179,8,0.2)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 'var(--space-4)',
-            fontSize: 12,
-            color: 'var(--warning)',
-          }}>
-            {matchAnalysis.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
-          </div>
-        )}
-
-        {/* Barra de Ações — scroll horizontal no mobile */}
-        <div className="action-scroller mb-6">
+        
+        {/* Primary Action Array */}
+        <div className="hidden md:flex items-center gap-2">
           {allowedTransitions.map(s => (
-            <button key={s} className="btn btn-secondary btn-sm" onClick={() => handleStageChange(s)}>
-              → {STAGE_LABELS[s]}
-            </button>
+            <Button key={s} variant="secondary" onClick={() => handleStageChange(s)} className="text-xs h-8">
+              Mover para {STAGE_LABELS[s]} <ChevronRight className="w-3 h-3 ml-1" />
+            </Button>
           ))}
-          <span className="action-divider" />
+          <div className="w-px h-6 bg-white/[0.04] mx-2" />
           {META_EVENT_NAMES.map(ev => (
-            <button key={ev} className="btn btn-primary btn-sm" onClick={() => openDispatchModal(ev)}>
-              Enviar {EVENT_LABELS[ev] || ev}
-            </button>
-          ))}
-          <span className="action-divider" />
-          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('cta_click')}>+CTA</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('conversation_started')}>+Conversa</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('proposal_sent')}>+Proposta</button>
-          <span className="action-divider" />
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_response')}>−Sem Resposta</button>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('curious_no_fit')}>−Curioso</button>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_budget')}>−Sem Verba</button>
-        </div>
-
-        {/* Abas */}
-        <div className="action-scroller mb-4">
-          {([
-            { key: 'timeline', label: 'Histórico' },
-            { key: 'signals', label: 'Sinais' },
-            { key: 'dispatches', label: 'Envios Meta' },
-            { key: 'notes', label: 'Notas' },
-          ] as const).map(tab => (
-            <button
-              key={tab.key}
-              className={`btn btn-ghost btn-sm ${activeTab === tab.key ? 'active' : ''}`}
-              style={activeTab === tab.key ? { background: 'var(--accent-subtle)', color: 'var(--accent)' } : {}}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
+            <Button key={ev} variant="primary" onClick={() => openDispatchModal(ev)} className="text-xs h-8">
+              <Send className="w-3 h-3 mr-1.5 opacity-70" /> {EVENT_LABELS[ev] || ev}
+            </Button>
           ))}
         </div>
-
-        {/* Conteúdo das Abas */}
-        {activeTab === 'timeline' && (
-          <div className="card">
-            <div className="timeline">
-              {[...stageHistory.map(h => ({ type: 'stage' as const, date: h.created_at, data: h })),
-                ...scoreEvents.map(e => ({ type: 'score' as const, date: e.created_at, data: e })),
-                ...dispatches.map(d => ({ type: 'dispatch' as const, date: d.dispatched_at, data: d })),
-                ...notes.map(n => ({ type: 'note' as const, date: n.created_at, data: n })),
-              ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((item, i) => (
-                <div key={i} className={`timeline-item ${item.type}`}>
-                  <div className="timeline-content">
-                    {item.type === 'stage' && (
-                      <>
-                        <div className="timeline-label">
-                          {STAGE_LABELS[(item.data as DbLeadStageHistory).from_stage as LeadStage] || 'Início'} → {STAGE_LABELS[(item.data as DbLeadStageHistory).to_stage as LeadStage]}
-                        </div>
-                        <div className="timeline-meta">{(item.data as DbLeadStageHistory).reason || ''}</div>
-                      </>
-                    )}
-                    {item.type === 'score' && (
-                      <div className="timeline-label flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
-                        <span>
-                          Score: {(item.data as DbLeadScoreEvent).event_type} ({(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points})
-                          {(item.data as DbLeadScoreEvent).note ? <span className="text-muted"> — {(item.data as DbLeadScoreEvent).note}</span> : null}
-                        </span>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ color: 'var(--danger)', fontSize: 11, padding: '0 4px' }}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id); }}
-                          title="Remover este score"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                    {item.type === 'dispatch' && (
-                      <>
-                        <div className="timeline-label">
-                          Envio Meta: {EVENT_LABELS[(item.data as DbMetaEventDispatch).event_name] || (item.data as DbMetaEventDispatch).event_name}
-                          <span className={`badge ${(item.data as DbMetaEventDispatch).status === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ marginLeft: 8 }}>
-                            {(item.data as DbMetaEventDispatch).status === 'success' ? 'Sucesso' : 'Erro'}
-                          </span>
-                        </div>
-                        <div className="timeline-meta">
-                          Match: {(item.data as DbMetaEventDispatch).match_strength_at_send} | Amb: {(item.data as DbMetaEventDispatch).environment === 'test' ? 'Teste' : 'Produção'}
-                        </div>
-                      </>
-                    )}
-                    {item.type === 'note' && (
-                      <div className="timeline-label">{(item.data as DbLeadNote).content}</div>
-                    )}
-                    <div className="timeline-meta">{new Date(item.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
-                  </div>
-                </div>
-              ))}
-              {stageHistory.length === 0 && scoreEvents.length === 0 && dispatches.length === 0 && notes.length === 0 && (
-                <div className="empty-state"><div className="empty-state-text">Nenhum evento ainda</div></div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'signals' && (
-          <div className="card">
-            <div className="card-title mb-4">
-              <Tooltip label="Sinais de Identidade" tip="Dados do lead usados para correspondência com perfis da Meta (email, telefone, IP, user agent, etc). Mais sinais = melhor atribuição." />
-            </div>
-            <div className="signals-grid-2col">
-              <div>
-                <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Disponíveis</div>
-                <div className="signal-grid">
-                  {matchAnalysis.availableSignals.map(s => (
-                    <span key={s} className="signal-tag present">✓ {s}</span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Ausentes</div>
-                <div className="signal-grid">
-                  {matchAnalysis.missingSignals.map(s => (
-                    <span key={s} className="signal-tag missing">✕ {s}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {matchAnalysis.recommendations.length > 0 && (
-              <div className="mt-4" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                <strong>Recomendações:</strong>
-                <ul style={{ marginTop: 4, paddingLeft: 16 }}>
-                  {matchAnalysis.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'dispatches' && (
-          <>
-            {/* Desktop */}
-            <div className="table-container desktop-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Evento</th>
-                    <th>Ambiente</th>
-                    <th>Status</th>
-                    <th>Correspondência</th>
-                    <th>HTTP</th>
-                    <th>Data</th>
-                    <th>Payload</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dispatches.length === 0 ? (
-                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum envio</td></tr>
-                  ) : dispatches.map(d => (
-                    <tr key={d.id}>
-                      <td style={{ fontWeight: 600 }}>{EVENT_LABELS[d.event_name] || d.event_name}</td>
-                      <td>
-                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
-                          {d.environment === 'test' ? 'Teste' : 'Produção'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>
-                          {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status}
-                        </span>
-                      </td>
-                      <td className="text-xs">{d.match_strength_at_send || '—'}</td>
-                      <td className="text-xs font-mono">{d.response_status || '—'}</td>
-                      <td className="text-xs text-muted">{new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                      <td>
-                        <details>
-                          <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>ver</summary>
-                          <div className="payload-block mt-2">{JSON.stringify(d.payload_sent, null, 2)}</div>
-                          {d.response_body && (
-                            <>
-                              <div className="text-xs text-muted mt-2">Resposta:</div>
-                              <div className="payload-block mt-1">{JSON.stringify(d.response_body, null, 2)}</div>
-                            </>
-                          )}
-                        </details>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile */}
-            <div className="mobile-card-list">
-              {dispatches.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum envio</div>
-              ) : dispatches.map(d => (
-                <div key={d.id} className="mobile-card-item">
-                  <div className="mobile-card-item-header">
-                    <span className="mobile-card-item-title">{EVENT_LABELS[d.event_name] || d.event_name}</span>
-                    <span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>
-                      {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status}
-                    </span>
-                  </div>
-                  <div className="mobile-card-item-body">
-                    <div className="mobile-card-item-row">
-                      <span className="mobile-card-item-label">Ambiente</span>
-                      <span className="mobile-card-item-value">
-                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
-                          {d.environment === 'test' ? 'Teste' : 'Produção'}
-                        </span>
-                      </span>
-                    </div>
-                    <div className="mobile-card-item-row">
-                      <span className="mobile-card-item-label">Correspondência</span>
-                      <span className="mobile-card-item-value">{d.match_strength_at_send || '—'}</span>
-                    </div>
-                    <div className="mobile-card-item-row">
-                      <span className="mobile-card-item-label">HTTP</span>
-                      <span className="mobile-card-item-value font-mono">{d.response_status || '—'}</span>
-                    </div>
-                    <div className="mobile-card-item-row">
-                      <span className="mobile-card-item-label">Data</span>
-                      <span className="mobile-card-item-value">
-                        {new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                      </span>
-                    </div>
-                  </div>
-                  <details style={{ marginTop: 'var(--space-2)' }}>
-                    <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>Ver payload</summary>
-                    <div className="payload-block mt-2" style={{ fontSize: 11 }}>{JSON.stringify(d.payload_sent, null, 2)}</div>
-                  </details>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {activeTab === 'notes' && (
-          <div className="card">
-            <form onSubmit={handleAddNote} className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
-              <input
-                className="form-input"
-                placeholder="Adicionar nota..."
-                value={noteContent}
-                onChange={e => setNoteContent(e.target.value)}
-                style={{ flex: 1, minWidth: 180 }}
-              />
-              <button type="submit" className="btn btn-primary btn-sm" disabled={addingNote || !noteContent.trim()}>Adicionar</button>
-            </form>
-            {notes.map(n => (
-              <div key={n.id} style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 13 }}>{n.content}</div>
-                <div className="text-xs text-muted mt-1">{new Date(n.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
-              </div>
-            ))}
-            {notes.length === 0 && <div className="text-muted" style={{ fontSize: 13 }}>Nenhuma nota</div>}
-          </div>
-        )}
       </div>
 
-      {/* Modal de Envio */}
-      {showDispatch && (
-        <div className="modal-overlay" onClick={() => setShowDispatch(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
-            <h2 className="modal-title">Enviar {EVENT_LABELS[dispatchEvent] || dispatchEvent} (Teste)</h2>
+      {/* Main Ledger Layout */}
+      <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8">
+        
+        {/* Left Column: Metrics & Identity */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="p-5 pb-3 border-b border-white/[0.04]">
+              <CardTitle className="uppercase text-[11px] tracking-widest text-slate-7 flex items-center justify-between">
+                Performance Score
+                <Activity className="w-3.5 h-3.5" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <div className="flex items-end justify-between">
+                <div className="text-4xl font-mono font-bold tracking-tighter text-white">{lead.score}</div>
+                <Badge variant="neutral" className="uppercase font-bold tracking-widest">{SCORE_BAND_LABELS[lead.score_band as ScoreBand]}</Badge>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('conversation_started')} className="text-xs bg-slate-2 border border-slate-3">+ Conversa</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('proposal_sent')} className="text-xs bg-slate-2 border border-slate-3">+ Proposta</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('no_response')} className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">- Sem resposta</Button>
+              </div>
+            </CardContent>
+          </Card>
 
-            {dispatchResult ? (
-              <div>
-                <div className={`badge ${dispatchResult.success ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: 14, padding: '6px 16px', marginBottom: 'var(--space-4)' }}>
-                  {dispatchResult.success ? '✓ Enviado com sucesso' : `✕ Erro: ${String(dispatchResult.error)}`}
+          <Card>
+            <CardHeader className="p-5 pb-3 border-b border-white/[0.04]">
+              <CardTitle className="uppercase text-[11px] tracking-widest text-slate-7 flex items-center justify-between">
+                <Tooltip content="Qualidade dos dados de identidade do lead comparado aos requisitos do Facebook.">
+                  <span className="flex items-center gap-1.5 cursor-help">Força do Match <HelpCircle className="w-3 h-3" /></span>
+                </Tooltip>
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-medium text-white">{MATCH_STRENGTH_LABELS[matchAnalysis.strength]}</div>
+                <span className="text-xs text-slate-6 font-mono">{matchAnalysis.availableSignals.length}/10 sinais</span>
+              </div>
+              
+              {matchAnalysis.warnings.length > 0 && (
+                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                  {matchAnalysis.warnings.map((w, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-yellow-500/90 leading-relaxed mb-1 last:mb-0">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {w}
+                    </div>
+                  ))}
                 </div>
-                {Array.isArray(dispatchResult.warnings) && (dispatchResult.warnings as string[]).length > 0 ? (
-                  <div style={{ fontSize: 12, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>
-                    {(dispatchResult.warnings as string[]).map((w, i) => <div key={i}>⚠ {w}</div>)}
-                  </div>
-                ) : null}
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowDispatch(false)}>Fechar</button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="p-5 pb-3 border-b border-white/[0.04]">
+              <CardTitle className="uppercase text-[11px] tracking-widest text-slate-7">Contato Central</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-white/[0.04]">
+                <div className="flex items-center gap-3 p-4">
+                  <Mail className="w-4 h-4 text-slate-7" />
+                  <span className="text-sm text-slate-9 tracking-tight">{lead.email || '—'}</span>
+                </div>
+                <div className="flex items-center gap-3 p-4">
+                  <Phone className="w-4 h-4 text-slate-7" />
+                  <span className="text-sm text-slate-9 tracking-tight font-mono">{lead.phone || '—'}</span>
+                </div>
+                <div className="flex items-center gap-3 p-4">
+                  <Globe className="w-4 h-4 text-slate-7" />
+                  <span className="text-sm text-slate-9 tracking-tight capitalize">{lead.source}</span>
                 </div>
               </div>
-            ) : dispatchStep === 1 ? (
-              <div>
-                {dispatchEvent === 'Purchase' && (
-                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-                    <div className="form-group" style={{ flex: 1, minWidth: 140 }}>
-                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Valor da Venda</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        value={purchaseValue}
-                        onChange={e => setPurchaseValue(Number(e.target.value))}
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ width: 100 }}>
-                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Moeda</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={currency}
-                        onChange={e => setCurrency(e.target.value.toUpperCase())}
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                  </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Ledger Log */}
+        <div className="flex flex-col min-h-0 bg-surface border border-white/[0.04] rounded-xl shadow-subtle overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center border-b border-white/[0.04] bg-slate-2/50 px-2 lg:px-4">
+            {([
+              { key: 'timeline', label: 'Histórico' },
+              { key: 'signals', label: 'Sinais e Atribuição' },
+              { key: 'dispatches', label: 'Disparos Meta' },
+              { key: 'notes', label: 'Anotações' },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                className={cn(
+                  "px-4 py-3 text-xs font-medium tracking-wide transition-all border-b-2 whitespace-nowrap",
+                  activeTab === tab.key 
+                    ? "border-slate-9 text-slate-10" 
+                    : "border-transparent text-slate-7 hover:text-slate-9 hover:border-slate-7"
                 )}
-                {/* Resumo */}
-                <div className="text-sm text-secondary mb-4">
-                  Lead: <strong>{lead.name}</strong> | Match: <strong>{MATCH_STRENGTH_LABELS[matchAnalysis.strength]}</strong> | Score: <strong>{lead.score}</strong>
-                </div>
-                {previewPayload && (
-                  <>
-                    <div className="text-xs font-semibold text-muted mb-1">SINAIS UTILIZADOS</div>
-                    <div className="signal-grid mb-4" style={{ flexWrap: 'wrap' }}>
-                      {(previewPayload.signals_used as string[] || []).map(s => <span key={s} className="signal-tag present">✓ {s}</span>)}
-                      {(previewPayload.signals_missing as string[] || []).map(s => <span key={s} className="signal-tag missing">✕ {s}</span>)}
-                    </div>
-                    {(previewPayload.warnings as string[] || []).length > 0 && (
-                      <div style={{ fontSize: 12, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>
-                        {(previewPayload.warnings as string[]).map((w, i) => <div key={i}>⚠ {w}</div>)}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5 lg:p-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+              >
+                {/* Timeline Ledger */}
+                {activeTab === 'timeline' && (
+                  <div className="relative border-l border-white/[0.06] ml-3 pb-8">
+                    {[...stageHistory.map(h => ({ type: 'stage' as const, date: h.created_at, data: h })),
+                      ...scoreEvents.map(e => ({ type: 'score' as const, date: e.created_at, data: e })),
+                      ...dispatches.map(d => ({ type: 'dispatch' as const, date: d.dispatched_at, data: d })),
+                      ...notes.map(n => ({ type: 'note' as const, date: n.created_at, data: n })),
+                    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((item, i) => (
+                      <div key={i} className="relative pl-6 pb-6 last:pb-0">
+                        {/* Bullet point */}
+                        <div className={cn(
+                          "absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-slate-1",
+                          item.type === 'stage' ? 'bg-blue-400' :
+                          item.type === 'score' ? 'bg-slate-5' :
+                          item.type === 'dispatch' ? 'bg-green-400' : 'bg-slate-7'
+                        )} />
+                        
+                        <div className="text-xs font-mono text-slate-6 mb-1">
+                          {new Date(item.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                        </div>
+                        
+                        {item.type === 'stage' && (
+                          <div className="text-sm text-slate-9 font-medium tracking-tight">
+                            Mudança para <span className="text-blue-400">{STAGE_LABELS[(item.data as DbLeadStageHistory).to_stage as LeadStage]}</span>
+                          </div>
+                        )}
+
+                        {item.type === 'score' && (
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm text-slate-9 tracking-tight">
+                              Score: <span className="font-mono">{(item.data as DbLeadScoreEvent).event_type}</span>
+                              <span className={cn("ml-2 font-mono font-bold", (item.data as DbLeadScoreEvent).points > 0 ? "text-green-400" : "text-red-400")}>
+                                {(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points}
+                              </span>
+                            </div>
+                            <button className="text-slate-7 hover:text-red-400 transition-colors" onClick={() => handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id)}>✕</button>
+                          </div>
+                        )}
+
+                        {item.type === 'dispatch' && (
+                          <div>
+                            <div className="text-sm text-slate-9 tracking-tight font-medium">
+                              Envio API: {EVENT_LABELS[(item.data as DbMetaEventDispatch).event_name] || (item.data as DbMetaEventDispatch).event_name}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <Badge variant={(item.data as DbMetaEventDispatch).status === 'success' ? 'success' : 'danger'}>
+                                {(item.data as DbMetaEventDispatch).status === 'success' ? 'Sucesso 200' : 'Falha'}
+                              </Badge>
+                              <span className="text-xs text-slate-6 font-mono">{(item.data as DbMetaEventDispatch).match_strength_at_send}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {item.type === 'note' && (
+                          <div className="text-sm text-slate-8 leading-relaxed">
+                            "{(item.data as DbLeadNote).content}"
+                          </div>
+                        )}
                       </div>
+                    ))}
+                    {stageHistory.length === 0 && scoreEvents.length === 0 && dispatches.length === 0 && notes.length === 0 && (
+                      <div className="text-sm text-slate-7 italic pl-6">Nenhum rastro encontrado no log.</div>
                     )}
-                    <div className="text-xs font-semibold text-muted mb-1">PAYLOAD</div>
-                    <div className="payload-block">{JSON.stringify(previewPayload.payload, null, 2)}</div>
-                  </>
-                )}
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowDispatch(false)}>Cancelar</button>
-                  {requiresConfirm ? (
-                    <button 
-                      className="btn btn-primary" 
-                      onClick={() => setDispatchStep(2)}
-                      disabled={dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0)}
-                    >
-                      Continuar →
-                    </button>
-                  ) : (
-                    <button 
-                      className="btn btn-primary" 
-                      onClick={handleDispatch} 
-                      disabled={dispatching || (dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0))}
-                    >
-                      {dispatching ? 'Enviando...' : 'Enviar Evento'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div>
-                {/* Step 2: Confirmação inteligente */}
-                <div style={{
-                  padding: 'var(--space-4)',
-                  background: 'var(--warning-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: 'var(--space-4)',
-                  fontSize: 13,
-                  color: 'var(--warning)',
-                  lineHeight: 1.6,
-                }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Você está prestes a enviar um evento real</div>
-                  <div style={{ opacity: 0.85 }}>
-                    O evento <strong>{EVENT_LABELS[dispatchEvent] || dispatchEvent}</strong> será enviado para a API de Conversões da Meta para o lead <strong>{lead.name}</strong>. Essa ação não pode ser desfeita.
                   </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    Para prosseguir, digite CONFIRMAR
-                  </label>
-                  <input
-                    className="form-input"
-                    value={confirmText}
-                    onChange={e => setConfirmText(e.target.value.toUpperCase())}
-                    placeholder="CONFIRMAR"
-                    autoFocus
-                  />
-                </div>
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setDispatchStep(1)}>← Voltar</button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={handleDispatch}
-                    disabled={dispatching || confirmText !== 'CONFIRMAR'}
-                  >
-                    {dispatching ? 'Enviando...' : `Enviar ${EVENT_LABELS[dispatchEvent] || dispatchEvent}`}
-                  </button>
-                </div>
-              </div>
-            )}
+                )}
+
+                {/* Signals Map */}
+                {activeTab === 'signals' && (
+                  <div className="space-y-8">
+                    <div>
+                      <h4 className="text-xs font-semibold text-slate-7 uppercase tracking-widest mb-3">Vetor Disponível</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {matchAnalysis.availableSignals.map(s => (
+                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 text-xs font-mono border border-green-500/20">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-slate-7 uppercase tracking-widest mb-3">Sinais Cegos (Faltantes)</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {matchAnalysis.missingSignals.map(s => (
+                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-3 text-slate-6 text-xs font-mono border border-slate-4">
+                            <AlertTriangle className="w-3 h-3 opacity-50" /> {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Raw Dispatches */}
+                {activeTab === 'dispatches' && (
+                  <div className="space-y-4">
+                    {dispatches.length === 0 ? <p className="text-sm text-slate-7">Nenhum payload disparado via CAPI.</p> :
+                      dispatches.map(d => (
+                      <div key={d.id} className="p-4 rounded-lg border border-white/[0.04] bg-slate-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-medium text-white">{EVENT_LABELS[d.event_name] || d.event_name}</div>
+                            <div className="text-xs text-slate-6 font-mono mt-0.5">{new Date(d.dispatched_at).toLocaleString('pt-BR', { timeStyle: 'medium', dateStyle: 'short' })}</div>
+                          </div>
+                          <Badge variant={d.status === 'success' ? 'success' : 'danger'}>{d.status.toUpperCase()}</Badge>
+                        </div>
+                        <details className="mt-4 group">
+                          <summary className="text-xs text-blue-400 cursor-pointer font-medium tracking-wide flex items-center outline-none">
+                            <ChevronRight className="w-3.5 h-3.5 mr-1 transition-transform group-open:rotate-90" />
+                            VIEW RAW PAYLOAD
+                          </summary>
+                          <div className="mt-3 p-3 rounded bg-slate-1 border border-white/[0.04] overflow-x-auto">
+                            <pre className="text-[10px] text-slate-7 font-mono">{JSON.stringify(d.payload_sent, null, 2)}</pre>
+                            {d.response_body && (
+                              <>
+                                <div className="text-[10px] text-slate-6 font-mono mt-3 mb-1 border-t border-white/[0.04] pt-2">RESPONSE</div>
+                                <pre className="text-[10px] text-slate-7 font-mono">{JSON.stringify(d.response_body, null, 2)}</pre>
+                              </>
+                            )}
+                          </div>
+                        </details>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Notes Input */}
+                {activeTab === 'notes' && (
+                  <div>
+                    <form onSubmit={handleAddNote} className="flex gap-2 mb-8">
+                      <Input 
+                        placeholder="Adicionar nota de inteligência..." 
+                        value={noteContent}
+                        onChange={e => setNoteContent(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button type="submit" disabled={addingNote || !noteContent.trim()}>Salvar</Button>
+                    </form>
+                    <div className="space-y-4">
+                      {notes.map(n => (
+                        <div key={n.id} className="p-4 bg-slate-2 border border-white/[0.04] rounded-md">
+                          <p className="text-sm text-slate-9 leading-relaxed">{n.content}</p>
+                          <span className="text-[10px] text-slate-6 font-mono mt-2 block">{new Date(n.created_at).toLocaleString('pt-BR')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-      )}
-    </>
+      </div>
+
+      {/* Dispatch Modal overrides using Resend precise style */}
+      <AnimatePresence>
+        {showDispatch && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center isolate p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm -z-10"
+              onClick={() => setShowDispatch(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="bg-surface border border-white/[0.08] shadow-popover w-full max-w-[500px] rounded-xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-white/[0.04]">
+                <h2 className="text-lg font-serif italic text-white tracking-tight">Test Dispatch: {EVENT_LABELS[dispatchEvent]}</h2>
+              </div>
+              <div className="p-6">
+                {dispatchResult ? (
+                  <div className="space-y-4">
+                    <div className={cn("p-4 border rounded-md text-sm font-medium", dispatchResult.success ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
+                      {dispatchResult.success ? '✓ Transmission Successful (200 OK)' : `✕ Meta Rejected: ${String(dispatchResult.error)}`}
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <Button variant="secondary" onClick={() => setShowDispatch(false)}>Dismiss</Button>
+                    </div>
+                  </div>
+                ) : dispatchStep === 1 ? (
+                  <div className="space-y-6">
+                    {dispatchEvent === 'Purchase' && (
+                      <div className="grid grid-cols-[1fr_80px] gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Valor Numeric</label>
+                          <Input type="number" value={purchaseValue} onChange={e => setPurchaseValue(Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">ISO</label>
+                          <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-slate-7 bg-slate-2 border border-slate-3 rounded p-4 font-mono">
+                      Lead ID: {lead.id.split('-')[0]}<br/>
+                      Match Strength: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}<br/>
+                      <span className="text-yellow-500/80">Force Idempotency: True</span>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.04]">
+                      <Button variant="ghost" onClick={() => setShowDispatch(false)}>Cancel</Button>
+                      {requiresConfirm ? (
+                        <Button 
+                          onClick={() => setDispatchStep(2)}
+                          disabled={dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0)}
+                        >
+                          Continue
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={handleDispatch} 
+                          disabled={dispatching || (dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0))}
+                        >
+                          {dispatching ? 'Sending...' : 'Dispatch Event'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-md text-sm leading-relaxed">
+                      <strong>Dual Confirmation Required.</strong><br/>
+                      Você está prestes a forçar um envio manual deste evento crítico para o Facebook. Essa arquitetura não pode ser desfeita.
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Type CONFIRMAR to proceed</label>
+                      <Input value={confirmText} onChange={e => setConfirmText(e.target.value.toUpperCase())} autoFocus />
+                    </div>
+                    <div className="flex justify-between pt-4 border-t border-white/[0.04]">
+                      <Button variant="ghost" onClick={() => setDispatchStep(1)}><ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+                      <Button variant="danger" onClick={handleDispatch} disabled={dispatching || confirmText !== 'CONFIRMAR'}>
+                        {dispatching ? 'Executing...' : 'Force Dispatch'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
