@@ -36,6 +36,8 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<Record<string, unknown> | null>(null);
   const [previewPayload, setPreviewPayload] = useState<Record<string, unknown> | null>(null);
+  const [purchaseValue, setPurchaseValue] = useState<number>(0);
+  const [currency, setCurrency] = useState<string>('BRL');
 
   // Note
   const [noteContent, setNoteContent] = useState('');
@@ -97,6 +99,11 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
     setDispatchResult(null);
     setShowDispatch(true);
 
+    const initialValue = data?.lead.purchase_value ? Number(data.lead.purchase_value) : 0;
+    const initialCurrency = data?.lead.currency ? String(data.lead.currency) : 'BRL';
+    setPurchaseValue(initialValue);
+    setCurrency(initialCurrency);
+
     // Load preview
     const res = await fetch('/api/meta/preview-payload', {
       method: 'POST',
@@ -105,7 +112,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
         lead_id: leadId,
         event_name: eventName,
         is_test: true,
-        custom_data: eventName === 'Purchase' ? { value: data?.lead.purchase_value || 0, currency: data?.lead.currency || 'BRL' } : undefined,
+        custom_data: eventName === 'Purchase' ? { value: initialValue, currency: initialCurrency } : undefined,
       }),
     });
     const json = await res.json();
@@ -125,7 +132,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
         event_name: dispatchEvent,
         is_test: true,
         confirmation_text: requiresConfirm ? confirmText : undefined,
-        custom_data: dispatchEvent === 'Purchase' ? { value: data?.lead.purchase_value || 0, currency: data?.lead.currency || 'BRL' } : undefined,
+        custom_data: dispatchEvent === 'Purchase' ? { value: purchaseValue, currency: currency } : undefined,
       }),
     });
     const json = await res.json();
@@ -420,6 +427,30 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               </div>
             ) : dispatchStep === 1 ? (
               <div>
+                {dispatchEvent === 'Purchase' && (
+                  <div className="flex gap-4 mb-4">
+                    <div className="form-group flex-1">
+                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Valor (Purchase Value)</label>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        value={purchaseValue} 
+                        onChange={e => setPurchaseValue(Number(e.target.value))} 
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ width: 100 }}>
+                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Moeda</label>
+                      <input 
+                        type="text"
+                        className="form-input" 
+                        value={currency} 
+                        onChange={e => setCurrency(e.target.value.toUpperCase())} 
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {/* Step 1: Summary + Preview */}
                 <div className="text-sm text-secondary mb-4">
                   Lead: <strong>{lead.name}</strong> | Match: <strong>{matchAnalysis.strength}</strong> | Score: <strong>{lead.score}</strong>
