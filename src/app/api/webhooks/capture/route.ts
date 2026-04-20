@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { extractRequestParams } from '@/lib/meta/param-builder';
 
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get('origin') || '*';
@@ -38,6 +39,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // Extrair parâmetros Meta da request (fbc, fbp, IP, user agent)
+    const metaParams = extractRequestParams(request);
+
     const supabase = createAdminClient();
 
     // 1. Insert into leads table
@@ -64,7 +68,74 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Add services and area to the first note to inform the manager
+    // 2. Salvar sinais de identidade capturados da request (fbc, fbp, IP, UA)
+    const signalsToInsert = [];
+
+    if (email) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'email',
+        signal_value: email,
+        source: 'webhook_capture',
+        is_current: true,
+      });
+    }
+
+    if (phone) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'phone',
+        signal_value: phone,
+        source: 'webhook_capture',
+        is_current: true,
+      });
+    }
+
+    if (metaParams.fbc) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'fbc',
+        signal_value: metaParams.fbc,
+        source: 'param_builder',
+        is_current: true,
+      });
+    }
+
+    if (metaParams.fbp) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'fbp',
+        signal_value: metaParams.fbp,
+        source: 'param_builder',
+        is_current: true,
+      });
+    }
+
+    if (metaParams.client_ip_address) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'client_ip_address',
+        signal_value: metaParams.client_ip_address,
+        source: 'param_builder',
+        is_current: true,
+      });
+    }
+
+    if (metaParams.client_user_agent) {
+      signalsToInsert.push({
+        lead_id: leadData.id,
+        signal_type: 'client_user_agent',
+        signal_value: metaParams.client_user_agent,
+        source: 'param_builder',
+        is_current: true,
+      });
+    }
+
+    if (signalsToInsert.length > 0) {
+      await supabase.from('lead_identity_signals').insert(signalsToInsert);
+    }
+
+    // 3. Add services and area to the first note to inform the manager
     const noteText = `Lead capturado automaticamente no Chat do Site.\n* Área/Ramo: ${area || 'Não informado'}\n* Serviços de interesse: ${services?.join(', ') || 'Não informado'}`;
     
     await supabase
@@ -74,7 +145,7 @@ export async function POST(request: Request) {
         content: noteText
       });
 
-    // 3. Log event
+    // 4. Log event
     await supabase
       .from('lead_score_events')
       .insert({
