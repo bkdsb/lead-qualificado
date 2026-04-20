@@ -26,11 +26,11 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
           fontSize: 13,
           marginBottom: 'var(--space-6)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: 'var(--space-3)',
         }}>
-          <span style={{ fontSize: 18 }}>⚠</span>
-          <div>
+          <span style={{ fontSize: 18, marginTop: 2 }}>⚠</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <strong>Volume de Purchase insuficiente para otimização</strong>
             <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
               Apenas {stats.purchases7d} purchases nos últimos 7 dias. Considere usar QualifiedLead como fallback para otimização de campanhas.
