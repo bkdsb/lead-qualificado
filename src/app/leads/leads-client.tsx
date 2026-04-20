@@ -55,27 +55,27 @@ export default function LeadsClient() {
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4" style={{ flexWrap: 'wrap' }}>
-        <div className="flex items-center gap-3 flex-wrap w-full" style={{ flex: 1, minWidth: 280 }}>
+      {/* Barra de Ferramentas */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
             className="form-input"
-            placeholder="Buscar por nome, email ou phone..."
+            placeholder="Buscar por nome, email ou telefone..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{ flex: 1, minWidth: 200 }}
+            style={{ flex: 1, minWidth: 180 }}
           />
-          <select className="form-input" value={stageFilter} onChange={e => { setStageFilter(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: 150 }}>
+          <select className="form-input" value={stageFilter} onChange={e => { setStageFilter(e.target.value); setPage(1); }} style={{ minWidth: 140, flex: '0 1 auto' }}>
             <option value="">Todos os estágios</option>
             {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>+ Novo Lead</button>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ whiteSpace: 'nowrap' }}>+ Novo Lead</button>
       </div>
 
-      {/* Table */}
-      <div className="table-container">
+      {/* Desktop Table */}
+      <div className="table-container desktop-table">
         <table>
           <thead>
             <tr>
@@ -84,9 +84,9 @@ export default function LeadsClient() {
               <th>Campanha</th>
               <th>Estágio</th>
               <th>Score</th>
-              <th>Match</th>
+              <th>Correspondência</th>
               <th>Último Contato</th>
-              <th>Sync</th>
+              <th>Sincronia</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -141,7 +141,9 @@ export default function LeadsClient() {
                     lead.meta_sync_status === 'error' ? 'badge-danger' :
                     'badge-neutral'
                   }`}>
-                    {lead.meta_sync_status}
+                    {lead.meta_sync_status === 'synced' ? 'Sincronizado' :
+                     lead.meta_sync_status === 'error' ? 'Erro' :
+                     lead.meta_sync_status === 'pending' ? 'Pendente' : lead.meta_sync_status}
                   </span>
                 </td>
                 <td onClick={e => e.stopPropagation()}>
@@ -155,9 +157,83 @@ export default function LeadsClient() {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Mobile Card List */}
+      <div className="mobile-card-list">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Carregando...</div>
+        ) : leads.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Nenhum lead encontrado</div>
+        ) : leads.map(lead => (
+          <div
+            key={lead.id}
+            className="mobile-card-item"
+            style={{ cursor: 'pointer' }}
+            onClick={() => router.push(`/leads/${lead.id}`)}
+          >
+            <div className="mobile-card-item-header">
+              <div>
+                <span className="mobile-card-item-title">{lead.name || '—'}</span>
+                <div className="text-xs text-muted" style={{ marginTop: 1 }}>{lead.email || lead.phone || ''}</div>
+              </div>
+              <span className="badge" style={{
+                background: `${STAGE_COLORS[lead.stage as LeadStage]}18`,
+                color: STAGE_COLORS[lead.stage as LeadStage],
+              }}>
+                {STAGE_LABELS[lead.stage as LeadStage]}
+              </span>
+            </div>
+            <div className="mobile-card-item-body">
+              <div className="mobile-card-item-row">
+                <span className="mobile-card-item-label">Score</span>
+                <span className="mobile-card-item-value">
+                  <span style={{ fontWeight: 600 }}>{lead.score}</span>
+                  <span className="badge" style={{
+                    marginLeft: 4,
+                    background: `${SCORE_BAND_COLORS[lead.score_band as ScoreBand]}18`,
+                    color: SCORE_BAND_COLORS[lead.score_band as ScoreBand],
+                    fontSize: 10,
+                  }}>
+                    {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
+                  </span>
+                </span>
+              </div>
+              <div className="mobile-card-item-row">
+                <span className="mobile-card-item-label">Correspondência</span>
+                <span className="mobile-card-item-value">
+                  <span className="badge" style={{
+                    background: `${MATCH_STRENGTH_COLORS[lead.match_strength as MatchStrength]}18`,
+                    color: MATCH_STRENGTH_COLORS[lead.match_strength as MatchStrength],
+                    fontSize: 10,
+                  }}>
+                    {MATCH_STRENGTH_LABELS[lead.match_strength as MatchStrength]}
+                  </span>
+                </span>
+              </div>
+              <div className="mobile-card-item-row">
+                <span className="mobile-card-item-label">Origem</span>
+                <span className="mobile-card-item-value">{lead.source}</span>
+              </div>
+              <div className="mobile-card-item-row">
+                <span className="mobile-card-item-label">Sincronia</span>
+                <span className="mobile-card-item-value">
+                  <span className={`badge ${
+                    lead.meta_sync_status === 'synced' ? 'badge-success' :
+                    lead.meta_sync_status === 'error' ? 'badge-danger' :
+                    'badge-neutral'
+                  }`} style={{ fontSize: 10 }}>
+                    {lead.meta_sync_status === 'synced' ? 'OK' :
+                     lead.meta_sync_status === 'error' ? 'Erro' : 'Pendente'}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Paginação */}
       {total > 30 && (
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-4" style={{ flexWrap: 'wrap', gap: 'var(--space-2)' }}>
           <span className="text-xs text-muted">{total} leads no total</span>
           <div className="flex gap-2">
             <button className="btn btn-secondary btn-sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Anterior</button>
@@ -167,7 +243,7 @@ export default function LeadsClient() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Modal Criar Lead */}
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>

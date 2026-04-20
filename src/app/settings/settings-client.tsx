@@ -17,6 +17,16 @@ interface CredentialRef {
   status: string;
 }
 
+function Tooltip({ label, tip }: { label: string; tip: string }) {
+  return (
+    <span className="tooltip-wrapper">
+      {label}
+      <span className="tooltip-icon">?</span>
+      <span className="tooltip-text">{tip}</span>
+    </span>
+  );
+}
+
 export default function SettingsClient({
   settings,
   credentialRefs,
@@ -58,10 +68,12 @@ export default function SettingsClient({
 
   return (
     <div style={{ maxWidth: 800 }}>
-      {/* CAPI Config */}
+      {/* Configuração CAPI */}
       <div className="card mb-6">
-        <div className="card-header">
-          <span className="card-title">Meta CAPI</span>
+        <div className="card-header" style={{ flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <span className="card-title">
+            <Tooltip label="API de Conversões Meta" tip="A API de Conversões (CAPI) permite enviar eventos do servidor diretamente para a Meta, melhorando a atribuição e otimização das suas campanhas." />
+          </span>
           <button className="btn btn-secondary btn-sm" onClick={verifyCapiConnection} disabled={verifying}>
             {verifying ? 'Verificando...' : 'Verificar Conexão'}
           </button>
@@ -81,8 +93,10 @@ export default function SettingsClient({
         )}
 
         <div className="form-group">
-          <label className="form-label">Modo Teste</label>
-          <div className="flex items-center gap-3">
+          <label className="form-label">
+            <Tooltip label="Modo Teste" tip="Quando ativo, todos os eventos enviados incluem o código de teste da Meta. Eventos de teste não afetam suas campanhas reais." />
+          </label>
+          <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
             <button
               className={`btn btn-sm ${isTestMode ? 'btn-primary' : 'btn-secondary'}`}
               onClick={toggleTestMode}
@@ -91,20 +105,20 @@ export default function SettingsClient({
               {isTestMode ? '● Ativo' : '○ Inativo'}
             </button>
             <span className="text-xs text-muted">
-              {isTestMode ? 'Eventos usarão test_event_code' : 'Modo produção — eventos reais'}
+              {isTestMode ? 'Eventos usarão código de teste' : 'Modo produção — eventos reais'}
             </span>
           </div>
         </div>
 
         <div className="mt-4">
           <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Variáveis de Ambiente Configuradas</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-2)' }}>
             {credentialRefs.map(ref => (
               <div key={ref.id} className="flex items-center gap-2" style={{ padding: 'var(--space-2)', background: 'var(--bg-root)', borderRadius: 'var(--radius-sm)' }}>
                 <span className={`badge ${ref.status === 'active' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: 9 }}>
-                  {ref.status}
+                  {ref.status === 'active' ? 'Ativo' : 'Inativo'}
                 </span>
-                <span className="text-xs font-mono">{ref.env_var_name}</span>
+                <span className="text-xs font-mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ref.env_var_name}</span>
                 <span className="text-xs text-muted">{ref.provider}</span>
               </div>
             ))}
@@ -112,10 +126,12 @@ export default function SettingsClient({
         </div>
       </div>
 
-      {/* Score Rules */}
+      {/* Regras de Pontuação */}
       <div className="card mb-6">
         <div className="card-header">
-          <span className="card-title">Regras de Score</span>
+          <span className="card-title">
+            <Tooltip label="Regras de Pontuação" tip="Define quantos pontos cada ação do lead vale. O score determina quando o lead está pronto para avançar de estágio." />
+          </span>
         </div>
         {settings.filter(s => s.key === 'score_rules').map(s => (
           <div key={s.id} className="payload-block">
@@ -127,12 +143,14 @@ export default function SettingsClient({
         </div>
       </div>
 
-      {/* All Settings Raw */}
+      {/* Todas as Configurações */}
       <div className="card">
         <div className="card-header">
           <span className="card-title">Todas as Configurações</span>
         </div>
-        <div className="table-container" style={{ border: 'none' }}>
+
+        {/* Desktop */}
+        <div className="table-container desktop-table" style={{ border: 'none' }}>
           <table>
             <thead>
               <tr>
@@ -155,6 +173,21 @@ export default function SettingsClient({
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile */}
+        <div className="mobile-card-list">
+          {settings.map(s => (
+            <div key={s.id} className="mobile-card-item">
+              <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>{s.key}</div>
+              <div className="text-xs" style={{ wordBreak: 'break-all', color: 'var(--text-secondary)' }}>
+                {typeof s.value === 'string' ? s.value : JSON.stringify(s.value)}
+              </div>
+              <div className="text-xs text-muted mt-2">
+                {new Date(s.updated_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -12,10 +12,20 @@ interface DashboardStats {
   lowPurchaseVolume: boolean;
 }
 
+function Tooltip({ label, tip }: { label: string; tip: string }) {
+  return (
+    <span className="tooltip-wrapper">
+      {label}
+      <span className="tooltip-icon">?</span>
+      <span className="tooltip-text">{tip}</span>
+    </span>
+  );
+}
+
 export default function DashboardClient({ stats }: { stats: DashboardStats }) {
   return (
     <>
-      {/* Alert: Low Purchase Volume */}
+      {/* Alerta: Volume baixo de vendas */}
       {stats.lowPurchaseVolume && (
         <div style={{
           padding: 'var(--space-4)',
@@ -31,32 +41,38 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
         }}>
           <span style={{ fontSize: 18, marginTop: 2 }}>⚠</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong>Volume de Purchase insuficiente para otimização</strong>
+            <strong>Volume de Vendas insuficiente para otimização</strong>
             <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
-              Apenas {stats.purchases7d} purchases nos últimos 7 dias. Considere usar QualifiedLead como fallback para otimização de campanhas.
+              Apenas {stats.purchases7d} vendas nos últimos 7 dias. A Meta precisa de no mínimo 50 eventos/semana para otimizar campanhas. Considere usar Qualificado como evento de fallback.
             </div>
           </div>
         </div>
       )}
 
-      {/* Stats Grid */}
+      {/* KPIs Principais — ordenados por importância para gestor de tráfego */}
       <div className="stats-grid">
         <div className="card">
-          <div className="card-title">Purchases 7d</div>
+          <div className="card-title">
+            <Tooltip label="Vendas 7d" tip="Total de vendas confirmadas nos últimos 7 dias. É o evento principal que otimiza suas campanhas na Meta." />
+          </div>
           <div className="card-value" style={{ color: 'var(--success)' }}>{stats.purchases7d}</div>
           <div className="card-subtitle">Evento principal de otimização</div>
         </div>
 
         <div className="card">
-          <div className="card-title">Qualifieds 7d</div>
-          <div className="card-value">{stats.qualifieds7d}</div>
-          <div className="card-subtitle">Leads qualificados no período</div>
+          <div className="card-title">
+            <Tooltip label="Conversão" tip="Taxa de conversão do funil: de quantos leads qualificados, quantos viraram venda. Meta saudável: acima de 20%." />
+          </div>
+          <div className="card-value">{stats.conversionRate}%</div>
+          <div className="card-subtitle">Qualificado → Venda</div>
         </div>
 
         <div className="card">
-          <div className="card-title">Qual → Purchase</div>
-          <div className="card-value">{stats.conversionRate}%</div>
-          <div className="card-subtitle">Taxa de conversão do funil</div>
+          <div className="card-title">
+            <Tooltip label="Qualificados 7d" tip="Leads que atingiram o estágio Qualificado nos últimos 7 dias. Evento secundário de otimização na Meta." />
+          </div>
+          <div className="card-value">{stats.qualifieds7d}</div>
+          <div className="card-subtitle">Leads qualificados no período</div>
         </div>
 
         <div className="card">
@@ -66,22 +82,28 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
         </div>
       </div>
 
-      {/* Action Cards */}
+      {/* Cards de Ação */}
       <div className="action-grid">
         <div className="card">
-          <div className="card-title">Prontos p/ Qualified</div>
+          <div className="card-title">
+            <Tooltip label="Prontos p/ Qualificar" tip="Leads com score ≥ 50 nos estágios Conversando ou Proposta. Prováveis candidatos a avançar para Qualificado." />
+          </div>
           <div className="card-value" style={{ color: 'var(--accent)' }}>{stats.readyForQualified}</div>
-          <div className="card-subtitle">Score ≥ 50 em conversing/proposal</div>
+          <div className="card-subtitle">Score ≥ 50 em conversando/proposta</div>
         </div>
 
         <div className="card">
-          <div className="card-title">Prontos p/ Purchase</div>
+          <div className="card-title">
+            <Tooltip label="Prontos p/ Venda" tip="Leads qualificados com score ≥ 80. Alta probabilidade de conversão — priorize o contato." />
+          </div>
           <div className="card-value" style={{ color: 'var(--success)' }}>{stats.readyForPurchase}</div>
-          <div className="card-subtitle">Score ≥ 80 em qualified</div>
+          <div className="card-subtitle">Score ≥ 80 em qualificado</div>
         </div>
 
         <div className="card">
-          <div className="card-title">Dispatches com Erro</div>
+          <div className="card-title">
+            <Tooltip label="Envios com Erro" tip="Eventos que falharam ao enviar para a API de Conversões da Meta. Erros impactam a otimização das campanhas." />
+          </div>
           <div className="card-value" style={{ color: stats.errorDispatches > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
             {stats.errorDispatches}
           </div>
@@ -89,7 +111,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
         </div>
       </div>
 
-      {/* Recent Dispatches */}
+      {/* Últimos Envios */}
       <div className="card">
         <div className="card-header">
           <span className="card-title">Últimos Envios</span>
@@ -99,43 +121,81 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
             <div className="empty-state-text">Nenhum evento enviado ainda</div>
           </div>
         ) : (
-          <div className="table-container" style={{ border: 'none' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th>Ambiente</th>
-                  <th>Status</th>
-                  <th>Match</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentDispatches.map((d: Record<string, unknown>) => (
-                  <tr key={d.id as string}>
-                    <td style={{ fontWeight: 600 }}>{d.event_name as string}</td>
-                    <td>
-                      <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
-                        {d.environment as string}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        d.status === 'success' ? 'badge-success' :
-                        d.status === 'failed' ? 'badge-danger' : 'badge-neutral'
-                      }`}>
-                        {d.status as string}
-                      </span>
-                    </td>
-                    <td className="text-xs">{d.match_strength_at_send as string || '—'}</td>
-                    <td className="text-xs text-muted">
-                      {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
+          <>
+            {/* Desktop */}
+            <div className="table-container desktop-table" style={{ border: 'none' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Evento</th>
+                    <th>Ambiente</th>
+                    <th>Status</th>
+                    <th>
+                      <Tooltip label="Correspondência" tip="Força de correspondência dos dados do lead com a Meta. Quanto maior, melhor a atribuição da conversão." />
+                    </th>
+                    <th>Data</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {stats.recentDispatches.map((d: Record<string, unknown>) => (
+                    <tr key={d.id as string}>
+                      <td style={{ fontWeight: 600 }}>{d.event_name as string}</td>
+                      <td>
+                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
+                          {d.environment === 'test' ? 'Teste' : 'Produção'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          d.status === 'success' ? 'badge-success' :
+                          d.status === 'failed' ? 'badge-danger' : 'badge-neutral'
+                        }`}>
+                          {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status as string}
+                        </span>
+                      </td>
+                      <td className="text-xs">{d.match_strength_at_send as string || '—'}</td>
+                      <td className="text-xs text-muted">
+                        {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile */}
+            <div className="mobile-card-list">
+              {stats.recentDispatches.map((d: Record<string, unknown>) => (
+                <div key={d.id as string} className="mobile-card-item">
+                  <div className="mobile-card-item-header">
+                    <span className="mobile-card-item-title">{d.event_name as string}</span>
+                    <span className={`badge ${
+                      d.status === 'success' ? 'badge-success' :
+                      d.status === 'failed' ? 'badge-danger' : 'badge-neutral'
+                    }`}>
+                      {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status as string}
+                    </span>
+                  </div>
+                  <div className="mobile-card-item-body">
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">Ambiente</span>
+                      <span className="mobile-card-item-value">
+                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
+                          {d.environment === 'test' ? 'Teste' : 'Produção'}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">Data</span>
+                      <span className="mobile-card-item-value">
+                        {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </>

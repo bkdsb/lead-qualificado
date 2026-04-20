@@ -22,6 +22,16 @@ interface LeadData {
   };
 }
 
+function Tooltip({ label, tip }: { label: string; tip: string }) {
+  return (
+    <span className="tooltip-wrapper">
+      {label}
+      <span className="tooltip-icon">?</span>
+      <span className="tooltip-text">{tip}</span>
+    </span>
+  );
+}
+
 export default function LeadDetailClient({ leadId }: { leadId: string }) {
   const router = useRouter();
   const [data, setData] = useState<LeadData | null>(null);
@@ -122,7 +132,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   async function handleDispatch() {
     setDispatching(true);
     const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
-    const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR PURCHASE' : 'ENVIAR';
 
     const res = await fetch('/api/meta/dispatch', {
       method: 'POST',
@@ -147,14 +156,21 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
   const { lead, signals, notes, stageHistory, scoreEvents, dispatches, matchAnalysis } = data;
   const requiresConfirm = DUAL_CONFIRM_EVENTS.includes(dispatchEvent as typeof DUAL_CONFIRM_EVENTS[number]);
-  const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR PURCHASE' : 'ENVIAR';
+  const requiredText = dispatchEvent === 'Purchase' ? 'CONFIRMAR VENDA' : 'ENVIAR';
   const allowedTransitions = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
+
+  const EVENT_LABELS: Record<string, string> = {
+    Lead: 'Lead',
+    QualifiedLead: 'Lead Qualificado',
+    Purchase: 'Venda',
+    Schedule: 'Agendamento',
+  };
 
   return (
     <>
       {/* Header */}
       <div className="app-header">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
           <button className="btn btn-ghost" onClick={() => router.push('/leads')}>← Leads</button>
           <span className="app-header-title">{lead.name || 'Sem nome'}</span>
           <span className="badge" style={{
@@ -167,7 +183,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
       </div>
 
       <div className="app-content">
-        {/* Info Row */}
+        {/* Cards de Informação */}
         <div className="stats-grid">
           <div className="card">
             <div className="card-title">Score</div>
@@ -180,7 +196,9 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
             </span>
           </div>
           <div className="card">
-            <div className="card-title">Match Strength</div>
+            <div className="card-title">
+              <Tooltip label="Força do Match" tip="Qualidade dos dados de identidade deste lead para correspondência com a Meta. Quanto mais forte, melhor a atribuição das conversões." />
+            </div>
             <div className="card-value" style={{ fontSize: 20 }}>
               {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}
             </div>
@@ -200,7 +218,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
           </div>
         </div>
 
-        {/* Match Warnings */}
+        {/* Alertas de Match */}
         {matchAnalysis.warnings.length > 0 && (
           <div style={{
             padding: 'var(--space-3) var(--space-4)',
@@ -215,44 +233,49 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
           </div>
         )}
 
-        {/* Actions Bar */}
-        <div className="flex items-center gap-2 mb-6" style={{ flexWrap: 'wrap' }}>
+        {/* Barra de Ações — scroll horizontal no mobile */}
+        <div className="action-scroller mb-6">
           {allowedTransitions.map(s => (
             <button key={s} className="btn btn-secondary btn-sm" onClick={() => handleStageChange(s)}>
               → {STAGE_LABELS[s]}
             </button>
           ))}
-          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          <span className="action-divider" />
           {META_EVENT_NAMES.map(ev => (
             <button key={ev} className="btn btn-primary btn-sm" onClick={() => openDispatchModal(ev)}>
-              Enviar {ev}
+              Enviar {EVENT_LABELS[ev] || ev}
             </button>
           ))}
-          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          <span className="action-divider" />
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('cta_click')}>+CTA</button>
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('conversation_started')}>+Conversa</button>
           <button className="btn btn-ghost btn-sm" onClick={() => handleScoreEvent('proposal_sent')}>+Proposta</button>
-          <span style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 4px' }} />
+          <span className="action-divider" />
           <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_response')}>−Sem Resposta</button>
           <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('curious_no_fit')}>−Curioso</button>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_budget')}>−Sem Budget</button>
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleScoreEvent('no_budget')}>−Sem Verba</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-4">
-          {(['timeline', 'signals', 'dispatches', 'notes'] as const).map(tab => (
+        {/* Abas */}
+        <div className="action-scroller mb-4">
+          {([
+            { key: 'timeline', label: 'Histórico' },
+            { key: 'signals', label: 'Sinais' },
+            { key: 'dispatches', label: 'Envios Meta' },
+            { key: 'notes', label: 'Notas' },
+          ] as const).map(tab => (
             <button
-              key={tab}
-              className={`btn btn-ghost btn-sm ${activeTab === tab ? 'active' : ''}`}
-              style={activeTab === tab ? { background: 'var(--accent-subtle)', color: 'var(--accent)' } : {}}
-              onClick={() => setActiveTab(tab)}
+              key={tab.key}
+              className={`btn btn-ghost btn-sm ${activeTab === tab.key ? 'active' : ''}`}
+              style={activeTab === tab.key ? { background: 'var(--accent-subtle)', color: 'var(--accent)' } : {}}
+              onClick={() => setActiveTab(tab.key)}
             >
-              {tab === 'timeline' ? 'Timeline' : tab === 'signals' ? 'Sinais' : tab === 'dispatches' ? 'Dispatches Meta' : 'Notas'}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
+        {/* Conteúdo das Abas */}
         {activeTab === 'timeline' && (
           <div className="card">
             <div className="timeline">
@@ -272,7 +295,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                       </>
                     )}
                     {item.type === 'score' && (
-                      <div className="timeline-label flex items-center gap-2">
+                      <div className="timeline-label flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
                         <span>
                           Score: {(item.data as DbLeadScoreEvent).event_type} ({(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points})
                           {(item.data as DbLeadScoreEvent).note ? <span className="text-muted"> — {(item.data as DbLeadScoreEvent).note}</span> : null}
@@ -290,13 +313,13 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                     {item.type === 'dispatch' && (
                       <>
                         <div className="timeline-label">
-                          Meta CAPI: {(item.data as DbMetaEventDispatch).event_name}
+                          Envio Meta: {EVENT_LABELS[(item.data as DbMetaEventDispatch).event_name] || (item.data as DbMetaEventDispatch).event_name}
                           <span className={`badge ${(item.data as DbMetaEventDispatch).status === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ marginLeft: 8 }}>
-                            {(item.data as DbMetaEventDispatch).status}
+                            {(item.data as DbMetaEventDispatch).status === 'success' ? 'Sucesso' : 'Erro'}
                           </span>
                         </div>
                         <div className="timeline-meta">
-                          Match: {(item.data as DbMetaEventDispatch).match_strength_at_send} | Amb: {(item.data as DbMetaEventDispatch).environment}
+                          Match: {(item.data as DbMetaEventDispatch).match_strength_at_send} | Amb: {(item.data as DbMetaEventDispatch).environment === 'test' ? 'Teste' : 'Produção'}
                         </div>
                       </>
                     )}
@@ -316,8 +339,10 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
         {activeTab === 'signals' && (
           <div className="card">
-            <div className="card-title mb-4">Sinais de Identidade</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div className="card-title mb-4">
+              <Tooltip label="Sinais de Identidade" tip="Dados do lead usados para correspondência com perfis da Meta (email, telefone, IP, user agent, etc). Mais sinais = melhor atribuição." />
+            </div>
+            <div className="signals-grid-2col">
               <div>
                 <div className="text-xs font-semibold text-muted mb-2" style={{ textTransform: 'uppercase' }}>Disponíveis</div>
                 <div className="signal-grid">
@@ -347,50 +372,113 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
         )}
 
         {activeTab === 'dispatches' && (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr><th>Evento</th><th>Amb</th><th>Status</th><th>Match</th><th>HTTP</th><th>Data</th><th>Payload</th></tr>
-              </thead>
-              <tbody>
-                {dispatches.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum dispatch</td></tr>
-                ) : dispatches.map(d => (
-                  <tr key={d.id}>
-                    <td style={{ fontWeight: 600 }}>{d.event_name}</td>
-                    <td><span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>{d.environment}</span></td>
-                    <td><span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>{d.status}</span></td>
-                    <td className="text-xs">{d.match_strength_at_send || '—'}</td>
-                    <td className="text-xs font-mono">{d.response_status || '—'}</td>
-                    <td className="text-xs text-muted">{new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                    <td>
-                      <details>
-                        <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>ver</summary>
-                        <div className="payload-block mt-2">{JSON.stringify(d.payload_sent, null, 2)}</div>
-                        {d.response_body && (
-                          <>
-                            <div className="text-xs text-muted mt-2">Resposta:</div>
-                            <div className="payload-block mt-1">{JSON.stringify(d.response_body, null, 2)}</div>
-                          </>
-                        )}
-                      </details>
-                    </td>
+          <>
+            {/* Desktop */}
+            <div className="table-container desktop-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Evento</th>
+                    <th>Ambiente</th>
+                    <th>Status</th>
+                    <th>Correspondência</th>
+                    <th>HTTP</th>
+                    <th>Data</th>
+                    <th>Payload</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {dispatches.length === 0 ? (
+                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum envio</td></tr>
+                  ) : dispatches.map(d => (
+                    <tr key={d.id}>
+                      <td style={{ fontWeight: 600 }}>{EVENT_LABELS[d.event_name] || d.event_name}</td>
+                      <td>
+                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
+                          {d.environment === 'test' ? 'Teste' : 'Produção'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>
+                          {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status}
+                        </span>
+                      </td>
+                      <td className="text-xs">{d.match_strength_at_send || '—'}</td>
+                      <td className="text-xs font-mono">{d.response_status || '—'}</td>
+                      <td className="text-xs text-muted">{new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                      <td>
+                        <details>
+                          <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>ver</summary>
+                          <div className="payload-block mt-2">{JSON.stringify(d.payload_sent, null, 2)}</div>
+                          {d.response_body && (
+                            <>
+                              <div className="text-xs text-muted mt-2">Resposta:</div>
+                              <div className="payload-block mt-1">{JSON.stringify(d.response_body, null, 2)}</div>
+                            </>
+                          )}
+                        </details>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile */}
+            <div className="mobile-card-list">
+              {dispatches.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Nenhum envio</div>
+              ) : dispatches.map(d => (
+                <div key={d.id} className="mobile-card-item">
+                  <div className="mobile-card-item-header">
+                    <span className="mobile-card-item-title">{EVENT_LABELS[d.event_name] || d.event_name}</span>
+                    <span className={`badge ${d.status === 'success' ? 'badge-success' : d.status === 'failed' ? 'badge-danger' : 'badge-neutral'}`}>
+                      {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Erro' : d.status}
+                    </span>
+                  </div>
+                  <div className="mobile-card-item-body">
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">Ambiente</span>
+                      <span className="mobile-card-item-value">
+                        <span className={`badge ${d.environment === 'test' ? 'badge-warning' : 'badge-success'}`}>
+                          {d.environment === 'test' ? 'Teste' : 'Produção'}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">Correspondência</span>
+                      <span className="mobile-card-item-value">{d.match_strength_at_send || '—'}</span>
+                    </div>
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">HTTP</span>
+                      <span className="mobile-card-item-value font-mono">{d.response_status || '—'}</span>
+                    </div>
+                    <div className="mobile-card-item-row">
+                      <span className="mobile-card-item-label">Data</span>
+                      <span className="mobile-card-item-value">
+                        {new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                  <details style={{ marginTop: 'var(--space-2)' }}>
+                    <summary className="text-xs" style={{ cursor: 'pointer', color: 'var(--accent)' }}>Ver payload</summary>
+                    <div className="payload-block mt-2" style={{ fontSize: 11 }}>{JSON.stringify(d.payload_sent, null, 2)}</div>
+                  </details>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {activeTab === 'notes' && (
           <div className="card">
-            <form onSubmit={handleAddNote} className="flex gap-3 mb-4">
+            <form onSubmit={handleAddNote} className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
               <input
                 className="form-input"
                 placeholder="Adicionar nota..."
                 value={noteContent}
                 onChange={e => setNoteContent(e.target.value)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 180 }}
               />
               <button type="submit" className="btn btn-primary btn-sm" disabled={addingNote || !noteContent.trim()}>Adicionar</button>
             </form>
@@ -405,11 +493,11 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
         )}
       </div>
 
-      {/* Dispatch Modal */}
+      {/* Modal de Envio */}
       {showDispatch && (
         <div className="modal-overlay" onClick={() => setShowDispatch(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
-            <h2 className="modal-title">Enviar {dispatchEvent} (Teste)</h2>
+            <h2 className="modal-title">Enviar {EVENT_LABELS[dispatchEvent] || dispatchEvent} (Teste)</h2>
 
             {dispatchResult ? (
               <div>
@@ -428,37 +516,37 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
             ) : dispatchStep === 1 ? (
               <div>
                 {dispatchEvent === 'Purchase' && (
-                  <div className="flex gap-4 mb-4">
-                    <div className="form-group flex-1">
-                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Valor (Purchase Value)</label>
-                      <input 
-                        type="number" 
-                        className="form-input" 
-                        value={purchaseValue} 
-                        onChange={e => setPurchaseValue(Number(e.target.value))} 
+                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+                    <div className="form-group" style={{ flex: 1, minWidth: 140 }}>
+                      <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Valor da Venda</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={purchaseValue}
+                        onChange={e => setPurchaseValue(Number(e.target.value))}
                         style={{ width: '100%' }}
                       />
                     </div>
                     <div className="form-group" style={{ width: 100 }}>
                       <label className="form-label" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>Moeda</label>
-                      <input 
+                      <input
                         type="text"
-                        className="form-input" 
-                        value={currency} 
-                        onChange={e => setCurrency(e.target.value.toUpperCase())} 
+                        className="form-input"
+                        value={currency}
+                        onChange={e => setCurrency(e.target.value.toUpperCase())}
                         style={{ width: '100%' }}
                       />
                     </div>
                   </div>
                 )}
-                {/* Step 1: Summary + Preview */}
+                {/* Resumo */}
                 <div className="text-sm text-secondary mb-4">
-                  Lead: <strong>{lead.name}</strong> | Match: <strong>{matchAnalysis.strength}</strong> | Score: <strong>{lead.score}</strong>
+                  Lead: <strong>{lead.name}</strong> | Match: <strong>{MATCH_STRENGTH_LABELS[matchAnalysis.strength]}</strong> | Score: <strong>{lead.score}</strong>
                 </div>
                 {previewPayload && (
                   <>
                     <div className="text-xs font-semibold text-muted mb-1">SINAIS UTILIZADOS</div>
-                    <div className="signal-grid mb-4">
+                    <div className="signal-grid mb-4" style={{ flexWrap: 'wrap' }}>
                       {(previewPayload.signals_used as string[] || []).map(s => <span key={s} className="signal-tag present">✓ {s}</span>)}
                       {(previewPayload.signals_missing as string[] || []).map(s => <span key={s} className="signal-tag missing">✕ {s}</span>)}
                     </div>
@@ -484,7 +572,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               </div>
             ) : (
               <div>
-                {/* Step 2: Type confirmation */}
+                {/* Step 2: Confirmação */}
                 <div style={{
                   padding: 'var(--space-4)',
                   background: 'var(--danger-subtle)',
@@ -514,7 +602,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                     onClick={handleDispatch}
                     disabled={dispatching || confirmText !== requiredText}
                   >
-                    {dispatching ? 'Enviando...' : `Confirmar ${dispatchEvent}`}
+                    {dispatching ? 'Enviando...' : `Confirmar ${EVENT_LABELS[dispatchEvent] || dispatchEvent}`}
                   </button>
                 </div>
               </div>

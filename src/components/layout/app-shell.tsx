@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '◉' },
+  { href: '/dashboard', label: 'Painel', icon: '◉' },
   { href: '/leads', label: 'Leads', icon: '☰' },
-  { href: '/events', label: 'Eventos Meta', icon: '↗' },
-  { href: '/qa', label: 'QA Panel', icon: '✓' },
+  { href: '/events', label: 'Envios Meta', icon: '↗' },
+  { href: '/qa', label: 'Qualidade', icon: '✓' },
   { href: '/audit', label: 'Auditoria', icon: '⊙' },
   { href: '/settings', label: 'Configurações', icon: '⚙' },
 ];
@@ -73,7 +73,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             ))}
 
-            <div className="sidebar-section-label">Meta CAPI</div>
+            <div className="sidebar-section-label">API de Conversões</div>
             {NAV_ITEMS.slice(2, 4).map(item => (
               <button
                 key={item.href}
