@@ -32,7 +32,10 @@ export default async function DashboardPage() {
 
   const purchases7d = purchasesResult.count || 0;
   const qualifieds7d = qualifiedsResult.count || 0;
-  const conversionRate = qualifieds7d > 0 ? ((purchases7d / qualifieds7d) * 100).toFixed(1) : '0';
+  const totalHistoricallyQualified7d = qualifieds7d + purchases7d;
+  const conversionRate = totalHistoricallyQualified7d > 0 
+    ? ((purchases7d / totalHistoricallyQualified7d) * 100).toFixed(1) 
+    : '0';
   const readyForQualified = readyForQualifiedResult.count || 0;
   const readyForPurchase = readyForPurchaseResult.count || 0;
   const errorDispatches = errorDispatchesResult.count || 0;
