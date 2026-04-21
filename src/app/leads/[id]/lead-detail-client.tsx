@@ -476,16 +476,16 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               className="bg-surface border border-white/[0.08] shadow-popover w-full max-w-[500px] rounded-xl overflow-hidden"
             >
               <div className="p-6 border-b border-white/[0.04]">
-                <h2 className="text-lg font-serif italic text-white tracking-tight">Test Dispatch: {EVENT_LABELS[dispatchEvent]}</h2>
+                <h2 className="text-lg font-serif italic text-white tracking-tight">Enviar Evento: {EVENT_LABELS[dispatchEvent]}</h2>
               </div>
               <div className="p-6">
                 {dispatchResult ? (
                   <div className="space-y-4">
                     <div className={cn("p-4 border rounded-md text-sm font-medium", dispatchResult.success ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
-                      {dispatchResult.success ? '✓ Transmission Successful (200 OK)' : `✕ Meta Rejected: ${String(dispatchResult.error)}`}
+                      {dispatchResult.success ? '✓ Transmissão realizada com sucesso (200 OK)' : `✕ Rejeitado pela Meta: ${String(dispatchResult.error)}`}
                     </div>
                     <div className="flex justify-end pt-4">
-                      <Button variant="secondary" onClick={() => setShowDispatch(false)}>Dismiss</Button>
+                      <Button variant="secondary" onClick={() => setShowDispatch(false)}>Fechar</Button>
                     </div>
                   </div>
                 ) : dispatchStep === 1 ? (
@@ -493,11 +493,11 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                     {dispatchEvent === 'Purchase' && (
                       <div className="grid grid-cols-[1fr_80px] gap-3">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Valor Numeric</label>
+                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Valor (R$)</label>
                           <Input type="number" value={purchaseValue} onChange={e => setPurchaseValue(Number(e.target.value))} />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">ISO</label>
+                          <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Moeda</label>
                           <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
                         </div>
                       </div>
@@ -505,25 +505,25 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
                     <div className="text-xs text-slate-7 bg-slate-2 border border-slate-3 rounded p-4 font-mono">
                       Lead ID: {lead.id.split('-')[0]}<br/>
-                      Match Strength: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}<br/>
-                      <span className="text-yellow-500/80">Force Idempotency: True</span>
+                      Força do Match: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}<br/>
+                      <span className="text-yellow-500/80">Forçar Reenvio: Ativo</span>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.04]">
-                      <Button variant="ghost" onClick={() => setShowDispatch(false)}>Cancel</Button>
+                      <Button variant="ghost" onClick={() => setShowDispatch(false)}>Cancelar</Button>
                       {requiresConfirm ? (
                         <Button 
                           onClick={() => setDispatchStep(2)}
                           disabled={dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0)}
                         >
-                          Continue
+                          Continuar
                         </Button>
                       ) : (
                         <Button 
                           onClick={handleDispatch} 
                           disabled={dispatching || (dispatchEvent === 'Purchase' && (isNaN(purchaseValue) || purchaseValue <= 0))}
                         >
-                          {dispatching ? 'Sending...' : 'Dispatch Event'}
+                          {dispatching ? 'Enviando...' : 'Enviar Evento'}
                         </Button>
                       )}
                     </div>
@@ -531,17 +531,17 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                 ) : (
                   <div className="space-y-6">
                     <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-md text-sm leading-relaxed">
-                      <strong>Dual Confirmation Required.</strong><br/>
+                      <strong>Confirmação dupla necessária.</strong><br/>
                       Você está prestes a forçar um envio manual deste evento crítico para o Facebook. Essa arquitetura não pode ser desfeita.
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Type CONFIRMAR to proceed</label>
+                      <label className="text-[10px] uppercase tracking-widest font-semibold text-slate-7">Digite CONFIRMAR para prosseguir</label>
                       <Input value={confirmText} onChange={e => setConfirmText(e.target.value.toUpperCase())} autoFocus />
                     </div>
                     <div className="flex justify-between pt-4 border-t border-white/[0.04]">
-                      <Button variant="ghost" onClick={() => setDispatchStep(1)}><ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+                      <Button variant="ghost" onClick={() => setDispatchStep(1)}><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Button>
                       <Button variant="danger" onClick={handleDispatch} disabled={dispatching || confirmText !== 'CONFIRMAR'}>
-                        {dispatching ? 'Executing...' : 'Force Dispatch'}
+                        {dispatching ? 'Executando...' : 'Forçar Envio'}
                       </Button>
                     </div>
                   </div>

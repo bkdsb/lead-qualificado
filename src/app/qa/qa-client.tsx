@@ -108,9 +108,9 @@ export default function QAClient({
                 <div className="p-4 max-h-[400px] overflow-auto">
                   {fetchingDQ ? (
                     <div className="text-blue-300 text-xs flex flex-col gap-1 opacity-70">
-                      <span>&gt; establishing connection to graph.facebook.com...</span>
-                      <span>&gt; negotiating ssl handshake...</span>
-                      <span className="animate-pulse">&gt; waiting for response dump_</span>
+                      <span>&gt; conectando a graph.facebook.com...</span>
+                      <span>&gt; negociando certificado ssl...</span>
+                      <span className="animate-pulse">&gt; aguardando resposta_</span>
                     </div>
                   ) : dqResult?.error ? (
                     <div className="text-red-400 text-xs">&gt; FATAL ERROR: {String(dqResult.error)}</div>
@@ -126,7 +126,7 @@ export default function QAClient({
                 {!fetchingDQ && (
                   <div className="p-2 border-t border-blue-500/20 bg-blue-500/5 flex justify-end">
                     <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 text-[10px] uppercase tracking-widest" onClick={() => setDqResult(null)}>
-                      Clear Session
+                      Limpar
                     </Button>
                   </div>
                 )}
