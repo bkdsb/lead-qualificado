@@ -62,52 +62,74 @@ export async function POST(request: NextRequest) {
   }
 
   let signals = signalsResult.data || [];
-
-  // ---- EMQ Boost: Auto-inject missing signals ----
-
-  // 1. If lead has no external_id signal, add one from UUID (always available)
-  if (!signals.find(s => s.signal_type === 'external_id')) {
-    await admin.from('lead_identity_signals').insert({
-      lead_id: lead_id,
-      signal_type: 'external_id',
-      signal_value: lead_id,
-      source: 'system',
-      is_current: true,
-    });
-    signals = [...signals, { id: '', lead_id, signal_type: 'external_id', signal_value: lead_id, source: 'system', is_current: true, created_at: new Date().toISOString() } as any];
-  }
-
-  // 2. If lead has no fn/ln but has a name, extract them
   const lead = leadResult.data;
-  if (lead.name && !signals.find(s => s.signal_type === 'fn')) {
+
+  // ---- EMQ Boost: Auto-inject & refresh signals for maximum match quality ----
+
+  // Helper: upsert a signal — marks old ones as not current, inserts fresh one
+  const upsertSignal = async (type: string, value: string, source: string) => {
+    // Mark any existing signals of this type as not current
+    await admin.from('lead_identity_signals')
+      .update({ is_current: false })
+      .eq('lead_id', lead_id)
+      .eq('signal_type', type);
+    // Insert fresh signal
+    await admin.from('lead_identity_signals').insert({
+      lead_id, signal_type: type, signal_value: value, source, is_current: true,
+    });
+    // Update local array: mark old as not current, add new
+    signals = signals.map(s =>
+      s.signal_type === type ? { ...s, is_current: false } : s
+    );
+    signals.push({ id: '', lead_id, signal_type: type, signal_value: value, source, is_current: true, collected_at: new Date().toISOString() } as any);
+  };
+
+  // Helper: add a signal only if it doesn't already exist as current
+  const addSignalIfMissing = async (type: string, value: string, source: string) => {
+    if (!signals.find(s => s.signal_type === type && s.is_current)) {
+      await admin.from('lead_identity_signals').insert({
+        lead_id, signal_type: type, signal_value: value, source, is_current: true,
+      });
+      signals.push({ id: '', lead_id, signal_type: type, signal_value: value, source, is_current: true, collected_at: new Date().toISOString() } as any);
+    }
+  };
+
+  // 1. external_id — always available from lead UUID
+  await addSignalIfMissing('external_id', lead_id, 'system');
+
+  // 2. fn/ln — extract from lead name if missing
+  if (lead.name) {
     const parts = lead.name.trim().split(/\s+/);
-    const newSignals = [];
-    if (parts[0]) newSignals.push({ lead_id, signal_type: 'fn', signal_value: parts[0], source: 'system', is_current: true });
-    if (parts.length >= 2) newSignals.push({ lead_id, signal_type: 'ln', signal_value: parts.slice(1).join(' '), source: 'system', is_current: true });
-    if (newSignals.length > 0) {
-      await admin.from('lead_identity_signals').insert(newSignals);
-      signals = [...signals, ...newSignals.map(s => ({ ...s, id: '', created_at: new Date().toISOString() }) as any)];
+    if (parts[0]) {
+      await addSignalIfMissing('fn', parts[0], 'system');
+    }
+    if (parts.length >= 2) {
+      await addSignalIfMissing('ln', parts.slice(1).join(' '), 'system');
     }
   }
 
-  // 3. If lead has no IP/UA, use the admin's request values as fallback
-  if (!signals.find(s => s.signal_type === 'client_ip_address')) {
-    const ip = extractClientIp(request.headers);
-    if (ip) {
-      await admin.from('lead_identity_signals').insert({ lead_id, signal_type: 'client_ip_address', signal_value: ip, source: 'admin_fallback', is_current: true });
-      signals = [...signals, { id: '', lead_id, signal_type: 'client_ip_address', signal_value: ip, source: 'admin_fallback', is_current: true, created_at: new Date().toISOString() } as any];
-    }
+  // 3. IP & UA — ALWAYS refresh with the current request values
+  //    These change over time and the original capture values are stale.
+  //    Even the admin's IP/UA is better than nothing for Meta matching.
+  const freshIp = extractClientIp(request.headers);
+  if (freshIp) {
+    await upsertSignal('client_ip_address', freshIp, 'admin_fallback');
   }
 
-  if (!signals.find(s => s.signal_type === 'client_user_agent')) {
-    const ua = request.headers.get('user-agent');
-    if (ua) {
-      await admin.from('lead_identity_signals').insert({ lead_id, signal_type: 'client_user_agent', signal_value: ua, source: 'admin_fallback', is_current: true });
-      signals = [...signals, { id: '', lead_id, signal_type: 'client_user_agent', signal_value: ua, source: 'admin_fallback', is_current: true, created_at: new Date().toISOString() } as any];
-    }
+  const freshUa = request.headers.get('user-agent');
+  if (freshUa) {
+    await upsertSignal('client_user_agent', freshUa, 'admin_fallback');
   }
 
-  // 4. In TEST MODE: generate simulated fbc/fbp so test events show full EMQ coverage
+  // 4. country — default 'br' for Brazilian leads (cheap EMQ boost)
+  await addSignalIfMissing('country', 'br', 'system');
+
+  // 5. phone — fallback from lead record if not in signals
+  if (lead.phone && !signals.find(s => s.signal_type === 'phone' && s.is_current)) {
+    await addSignalIfMissing('phone', lead.phone, 'system');
+  }
+
+  // 6. In TEST MODE: generate simulated fbc/fbp so test events show full EMQ coverage
   if (is_test) {
     if (!signals.find(s => s.signal_type === 'fbp')) {
       const testFbp = generateFbp();
