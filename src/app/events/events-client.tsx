@@ -17,14 +17,14 @@ export default function EventsClient({ dispatches }: { dispatches: Array<Record<
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
       <div className="space-y-1 mb-8">
         <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">Envios Meta</h1>
         <p className="text-sm text-slate-7">Histórico completo de eventos transmitidos via Conversions API.</p>
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-4 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
         <Card>
           <CardContent className="p-5 flex items-center justify-between">
             <div>

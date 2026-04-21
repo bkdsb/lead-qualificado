@@ -80,7 +80,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
   ];
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">Painel</h1>
         <p className="text-sm text-slate-7">Visão geral do funil e saúde da captação.</p>

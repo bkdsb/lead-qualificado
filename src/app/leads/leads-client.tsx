@@ -60,7 +60,7 @@ export default function LeadsClient() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6 animate-fade-in">
       {/* Header and Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -68,30 +68,32 @@ export default function LeadsClient() {
           <p className="text-sm text-slate-7">Gerencie o pipeline de conversão e scoring de identidade.</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-64 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-6" />
             <Input 
               placeholder="Buscar (nome, email...)" 
-              className="pl-9"
+              className="pl-9 w-full"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          <div className="relative">
-            <select 
-              className="h-9 rounded-md border border-white/[0.08] bg-slate-1 px-3 text-sm text-slate-10 focus:outline-none focus:ring-2 focus:ring-slate-6 appearance-none w-[160px]"
-              value={stageFilter}
-              onChange={e => { setStageFilter(e.target.value); setPage(1); }}
-            >
-              <option value="">Todos estágios</option>
-              {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-6 pointer-events-none" />
+          <div className="flex gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
+              <select 
+                className="h-9 w-full sm:w-[160px] rounded-md border border-white/[0.08] bg-slate-1 px-3 text-sm text-slate-10 focus:outline-none focus:ring-2 focus:ring-slate-6 appearance-none"
+                value={stageFilter}
+                onChange={e => { setStageFilter(e.target.value); setPage(1); }}
+              >
+                <option value="">Todos estágios</option>
+                {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-6 pointer-events-none" />
+            </div>
+            <Button onClick={() => setShowCreate(true)} className="gap-2 shrink-0">
+              <Plus className="w-4 h-4" /> <span className="hidden md:inline">Novo Lead</span>
+            </Button>
           </div>
-          <Button onClick={() => setShowCreate(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> <span className="hidden md:inline">Novo Lead</span>
-          </Button>
         </div>
       </div>
 
