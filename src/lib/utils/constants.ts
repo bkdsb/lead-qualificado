@@ -71,12 +71,37 @@ export const MATCH_STRENGTH_VALUES: Record<MatchStrength, number> = {
   strong: 5,
 };
 
-/** Meta CAPI event names we support */
+/** Meta CAPI event names we support — ordered by funnel priority (lowest → highest) */
 export const META_EVENT_NAMES = ['Lead', 'QualifiedLead', 'Schedule', 'Purchase'] as const;
 export type MetaEventName = (typeof META_EVENT_NAMES)[number];
 
 /** Events that require dual confirmation */
 export const DUAL_CONFIRM_EVENTS: MetaEventName[] = ['QualifiedLead', 'Purchase'];
+
+/**
+ * Default estimated values (BRL) per Meta event type.
+ *
+ * WHY THIS MATTERS:
+ * Meta's algorithm uses `value` to optimize for ROAS. If you only send value
+ * on Purchase, the algo has too few signals to learn. By assigning proportional
+ * values across the funnel, you teach the algorithm what a good lead *progression*
+ * looks like — so it finds more people likely to reach Purchase.
+ *
+ * STRATEGY (high-ticket services, avg ticket ~R$15.000):
+ * - Lead (contato via WPP):  R$150  (~1% conv rate × R$15k)
+ * - QualifiedLead:           R$1.500 (~10% conv rate × R$15k)
+ * - Schedule (agendamento):  R$3.750 (~25% conv rate × R$15k)
+ * - Purchase:                Real value (informed per lead, default R$15k)
+ *
+ * These are ESTIMATED values — Purchase always uses the REAL value when available.
+ * Adjust these based on your actual conversion rates per stage.
+ */
+export const META_EVENT_DEFAULT_VALUES: Record<MetaEventName, number> = {
+  Lead: 150,
+  QualifiedLead: 1500,
+  Schedule: 3750,
+  Purchase: 15000,
+};
 
 /** Stage to badge color mapping */
 export const STAGE_COLORS: Record<LeadStage, string> = {

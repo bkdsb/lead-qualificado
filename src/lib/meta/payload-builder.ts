@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { hashSignal } from './hash-utils';
-import { HASHABLE_SIGNALS } from '@/lib/utils/constants';
+import { HASHABLE_SIGNALS, META_EVENT_DEFAULT_VALUES } from '@/lib/utils/constants';
+import type { MetaEventName } from '@/lib/utils/constants';
 import type { DbLead, DbLeadIdentitySignal, ActionSource, MessagingChannel } from '@/types/database';
 import type { MetaEventPayload, MetaEventData, MetaUserData, MetaCustomData, PayloadBuildResult } from './types';
 import { evaluateMatchStrength } from '@/lib/engines/match-strength';
@@ -253,23 +254,32 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     eventData.messaging_channel = messagingChannel;
   }
 
-  // Add custom_data for Purchase
-  if (customData && (customData.value || customData.currency)) {
-    const cd: MetaCustomData = {};
-    if (customData.value != null && customData.value > 0) {
+  // ---- Value Assignment Strategy ----
+  // Every event gets a value+currency so Meta's algo learns funnel progression.
+  // Purchase: uses the REAL sale value (from customData), falls back to default.
+  // Other events: use proportional estimated values from META_EVENT_DEFAULT_VALUES.
+  const defaultValue = META_EVENT_DEFAULT_VALUES[eventName as MetaEventName];
+  const cd: MetaCustomData = {
+    currency: customData?.currency || 'BRL',
+  };
+
+  if (eventName === 'Purchase') {
+    // Purchase: prefer the real value informed by the operator
+    if (customData?.value && customData.value > 0) {
       cd.value = customData.value;
+    } else if (defaultValue) {
+      cd.value = defaultValue;
+      warnings.push(`Purchase sem value informado — usando valor estimado padrão R$${defaultValue.toLocaleString('pt-BR')}`);
     }
-    if (customData.currency) {
-      cd.currency = customData.currency;
-    }
-    if (Object.keys(cd).length > 0) {
-      eventData.custom_data = cd;
+  } else {
+    // Funnel events: always use the estimated default value
+    if (defaultValue) {
+      cd.value = defaultValue;
     }
   }
 
-  // If Purchase and no value, warn
-  if (eventName === 'Purchase' && (!customData?.value || customData.value <= 0)) {
-    warnings.push('Purchase sem value — evento será enviado mas sem dados de valor');
+  if (cd.value && cd.value > 0) {
+    eventData.custom_data = cd;
   }
 
   // Build final payload
