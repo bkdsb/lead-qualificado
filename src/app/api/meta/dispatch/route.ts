@@ -41,22 +41,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Production guard — extra check for Purchase in production
-  if (!is_test && event_name === 'Purchase') {
-    // Verify lead is in qualified stage
-    const admin = createAdminClient();
-    const { data: leadCheck } = await admin
-      .from('leads')
-      .select('stage')
-      .eq('id', lead_id)
-      .single();
-
-    if (leadCheck && leadCheck.stage !== 'qualified' && leadCheck.stage !== 'purchase') {
-      return NextResponse.json({
-        error: 'Purchase em produção requer lead no estágio qualified ou purchase',
-      }, { status: 400 });
-    }
-  }
+  // Removed the rigid production guard for Purchase, as this route is used for manual dashboard dispatches.
+  // The system will automatically upgrade the Lead to 'purchase' upon successful dispatch.
 
   // Fetch lead and signals
   const admin = createAdminClient();
