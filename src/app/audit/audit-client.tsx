@@ -92,7 +92,7 @@ export default function AuditClient({ logs }: { logs: AuditLog[] }) {
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
       <div className="space-y-1 mb-8">
-        <h1 className="font-serif italic text-3xl font-medium tracking-tight text-white mb-2">Auditoria de Sistema</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">Auditoria de Sistema</h1>
         <p className="text-sm text-slate-7">Rastro infraestrutural, operações manuais e chamadas de API.</p>
       </div>
 

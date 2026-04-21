@@ -171,7 +171,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="font-serif italic text-2xl font-medium tracking-tight text-white leading-tight">
+            <h1 className="text-2xl font-semibold tracking-tight text-white leading-tight">
               {lead.name || 'Sem nome'}
             </h1>
             <div className="flex items-center gap-2 mt-1">
@@ -476,7 +476,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               className="bg-surface border border-white/[0.08] shadow-popover w-full max-w-[500px] rounded-xl overflow-hidden"
             >
               <div className="p-6 border-b border-white/[0.04]">
-                <h2 className="text-lg font-serif italic text-white tracking-tight">Enviar Evento: {EVENT_LABELS[dispatchEvent]}</h2>
+                <h2 className="text-lg font-semibold text-white tracking-tight">Enviar Evento: {EVENT_LABELS[dispatchEvent]}</h2>
               </div>
               <div className="p-6">
                 {dispatchResult ? (

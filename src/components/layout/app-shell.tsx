@@ -61,7 +61,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Topbar */}
       <div className={cn("md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-slate-1/80 backdrop-blur-xl", isTest && "top-6")}>
-        <span className="font-serif italic text-lg tracking-tight text-white/90">Lead Qualificado</span>
+        <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
         <button className="p-2 text-slate-7 rounded-md active:bg-white/[0.04]" onClick={() => setIsMobileMenuOpen(true)}>
           <Menu className="w-5 h-5" />
         </button>
@@ -87,7 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         isTest && "top-6 h-[calc(100vh-24px)]"
       )}>
         <div className="flex items-center px-5 py-4 border-b border-white/[0.04]">
-          <span className="font-serif italic text-[17px] tracking-tight text-white/90">Lead Qualificado</span>
+          <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
         </div>
 
         <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto">
@@ -136,7 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
-              <span className="font-serif italic text-[17px] tracking-tight text-white/90">Lead Qualificado</span>
+              <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
               <button className="p-1 text-slate-7" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="w-4 h-4" />
               </button>

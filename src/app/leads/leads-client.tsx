@@ -64,7 +64,7 @@ export default function LeadsClient() {
       {/* Header and Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-serif italic text-3xl font-medium tracking-tight text-white mb-2">Leads</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">Leads</h1>
           <p className="text-sm text-slate-7">Gerencie o pipeline de conversão e scoring de identidade.</p>
         </div>
         
@@ -190,7 +190,7 @@ export default function LeadsClient() {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="bg-surface border border-white/[0.08] shadow-popover w-[90%] max-w-md rounded-xl p-6"
             >
-              <h2 className="text-xl font-serif italic text-white tracking-tight mb-5">Adicionar Lead</h2>
+              <h2 className="text-xl font-semibold text-white tracking-tight mb-5">Adicionar Lead</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs uppercase tracking-widest font-semibold text-slate-7">Nome</label>
