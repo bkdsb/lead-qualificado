@@ -43,7 +43,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   const [confirmText, setConfirmText] = useState('');
   const [dispatching, setDispatching] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<Record<string, unknown> | null>(null);
-  const [isTestMode, setIsTestMode] = useState(true);
   const [previewPayload, setPreviewPayload] = useState<Record<string, unknown> | null>(null);
   const [purchaseValue, setPurchaseValue] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('BRL');
@@ -118,7 +117,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
       body: JSON.stringify({
         lead_id: leadId,
         event_name: eventName,
-        is_test: isTestMode,
         custom_data: eventName === 'Purchase' ? { value: initialValue, currency: initialCurrency } : undefined,
       }),
     });
@@ -136,7 +134,6 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
       body: JSON.stringify({
         lead_id: leadId,
         event_name: dispatchEvent,
-        is_test: isTestMode,
         override_idempotency: true,
         confirmation_text: requiresConfirm ? confirmText : undefined,
         custom_data: dispatchEvent === 'Purchase' ? { value: purchaseValue, currency: currency } : undefined,
@@ -506,22 +503,11 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
                     <div className="text-xs text-slate-7 bg-slate-2 border border-slate-3 rounded p-4 font-mono">
                       Lead ID: {lead.id.split('-')[0]}<br/>
-                      Força do Match: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}<br/>
-                      <span className="text-yellow-500/80">Forçar Reenvio: Ativo</span>
+                      Força do Match: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}
                     </div>
 
-                    <div className="flex items-center gap-3 mt-4 px-4 py-3 bg-slate-2 rounded-md border border-white/[0.04]">
-                      <input 
-                        type="checkbox" 
-                        id="test-mode" 
-                        checked={isTestMode} 
-                        onChange={(e) => setIsTestMode(e.target.checked)}
-                        className="w-4 h-4 rounded border-white/[0.08] bg-surface text-white focus:ring-1 focus:ring-slate-6 cursor-pointer"
-                      />
-                      <label htmlFor="test-mode" className="text-sm font-medium text-white cursor-pointer select-none flex-1 leading-tight tracking-tight">
-                        Apenas Modo de Teste
-                        <span className="block text-[11px] text-slate-7 font-normal mt-0.5">Se marcado, evento é ignorado nas métricas oficiais da Meta.</span>
-                      </label>
+                    <div className="flex justify-between items-center bg-slate-2 p-4 rounded-md border border-white/[0.04]">
+                      <span className="text-yellow-500/80">Forçar Reenvio: Ativo</span>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.04]">

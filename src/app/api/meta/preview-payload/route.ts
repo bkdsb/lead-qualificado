@@ -13,17 +13,20 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const { lead_id, event_name, action_source = 'website', messaging_channel, event_source_url, custom_data, is_test = true } = body;
+  const { lead_id, event_name, action_source = 'website', messaging_channel, event_source_url, custom_data } = body;
 
   if (!lead_id || !event_name) {
     return NextResponse.json({ error: 'lead_id e event_name são obrigatórios' }, { status: 400 });
   }
 
   const admin = createAdminClient();
-  const [leadResult, signalsResult] = await Promise.all([
+  const [leadResult, signalsResult, settingsResult] = await Promise.all([
     admin.from('leads').select('*').eq('id', lead_id).single(),
     admin.from('lead_identity_signals').select('*').eq('lead_id', lead_id),
+    admin.from('business_settings').select('value').eq('key', 'test_mode_enabled').single(),
   ]);
+
+  const is_test = settingsResult.data?.value === 'true' || settingsResult.data?.value === true;
 
   if (!leadResult.data) {
     return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 });

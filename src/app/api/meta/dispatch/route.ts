@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
     messaging_channel,
     event_source_url,
     custom_data,
-    is_test = true,
     confirmation_text,
     override_idempotency,
   } = body;
@@ -44,12 +43,15 @@ export async function POST(request: NextRequest) {
   // Removed the rigid production guard for Purchase, as this route is used for manual dashboard dispatches.
   // The system will automatically upgrade the Lead to 'purchase' upon successful dispatch.
 
-  // Fetch lead and signals
+  // Fetch lead, signals and global settings
   const admin = createAdminClient();
-  const [leadResult, signalsResult] = await Promise.all([
+  const [leadResult, signalsResult, settingsResult] = await Promise.all([
     admin.from('leads').select('*').eq('id', lead_id).single(),
     admin.from('lead_identity_signals').select('*').eq('lead_id', lead_id),
+    admin.from('business_settings').select('value').eq('key', 'test_mode_enabled').single(),
   ]);
+
+  const is_test = settingsResult.data?.value === 'true' || settingsResult.data?.value === true;
 
   if (!leadResult.data) {
     return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 });
