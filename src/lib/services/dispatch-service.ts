@@ -18,6 +18,8 @@ interface DispatchOptions {
   isTest: boolean;
   confirmedAt?: string;
   overrideIdempotency?: boolean;
+  /** Unix timestamp (seconds) for the actual event time. Use for delayed events (e.g. Purchase reported later). */
+  eventTimeOverride?: number;
 }
 
 interface DispatchResult {
@@ -87,6 +89,7 @@ export async function dispatchMetaEvent(options: DispatchOptions): Promise<Dispa
     eventSourceUrl: options.eventSourceUrl,
     testEventCode: testEventCode || undefined,
     customData: options.customData,
+    eventTimeOverride: options.eventTimeOverride,
   });
 
   // 3. Record pending dispatch

@@ -17,6 +17,9 @@ interface BuildPayloadOptions {
     value?: number;
     currency?: string;
   };
+  /** Override event_time with a specific timestamp (unix seconds).
+   *  Use for Purchase events where the sale happened earlier. */
+  eventTimeOverride?: number;
 }
 
 /**
@@ -154,7 +157,8 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
   }
 
   // Build event data
-  const eventTime = Math.floor(Date.now() / 1000);
+  // Use override for Purchase/events that happened earlier, otherwise use current time
+  const eventTime = options.eventTimeOverride || Math.floor(Date.now() / 1000);
   const eventId = `evt_${uuidv4()}`;
 
   const eventData: MetaEventData = {

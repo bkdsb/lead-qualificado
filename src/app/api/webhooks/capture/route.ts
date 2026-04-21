@@ -39,8 +39,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extrair parâmetros Meta da request (fbc, fbp, IP, user agent)
-    const metaParams = extractRequestParams(request);
+    // Extrair parâmetros Meta da request headers (server-side)
+    const headerParams = extractRequestParams(request);
+
+    // CRITICAL: Accept fbc/fbp from request body too (cross-domain form sends these)
+    // Body params take priority over header-extracted ones
+    const metaParams = {
+      fbc: body.fbc || headerParams.fbc || null,
+      fbp: body.fbp || headerParams.fbp || null,
+      client_ip_address: headerParams.client_ip_address || body.client_ip_address || null,
+      client_user_agent: headerParams.client_user_agent || body.client_user_agent || null,
+    };
 
     const supabase = createAdminClient();
 
@@ -68,68 +77,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Salvar sinais de identidade capturados da request (fbc, fbp, IP, UA)
-    const signalsToInsert = [];
+    // 2. Salvar sinais de identidade capturados (body + headers)
+    const signalsToInsert: Array<{lead_id: string; signal_type: string; signal_value: string; source: string; is_current: boolean}> = [];
 
-    if (email) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'email',
-        signal_value: email,
-        source: 'webhook_capture',
-        is_current: true,
-      });
+    const addSignal = (type: string, value: string | null | undefined, source: string) => {
+      if (value && value.trim()) {
+        signalsToInsert.push({ lead_id: leadData.id, signal_type: type, signal_value: value.trim(), source, is_current: true });
+      }
+    };
+
+    // Core identity
+    addSignal('email', email, 'webhook_capture');
+    addSignal('phone', phone, 'webhook_capture');
+
+    // Auto-extract first name / last name from full name (boosts EMQ)
+    if (name) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 1) addSignal('fn', parts[0], 'webhook_capture');
+      if (parts.length >= 2) addSignal('ln', parts.slice(1).join(' '), 'webhook_capture');
     }
 
-    if (phone) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'phone',
-        signal_value: phone,
-        source: 'webhook_capture',
-        is_current: true,
-      });
-    }
+    // Auto-generate external_id from lead UUID (boosts EMQ)
+    addSignal('external_id', leadData.id, 'system');
 
-    if (metaParams.fbc) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'fbc',
-        signal_value: metaParams.fbc,
-        source: 'param_builder',
-        is_current: true,
-      });
-    }
-
-    if (metaParams.fbp) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'fbp',
-        signal_value: metaParams.fbp,
-        source: 'param_builder',
-        is_current: true,
-      });
-    }
-
-    if (metaParams.client_ip_address) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'client_ip_address',
-        signal_value: metaParams.client_ip_address,
-        source: 'param_builder',
-        is_current: true,
-      });
-    }
-
-    if (metaParams.client_user_agent) {
-      signalsToInsert.push({
-        lead_id: leadData.id,
-        signal_type: 'client_user_agent',
-        signal_value: metaParams.client_user_agent,
-        source: 'param_builder',
-        is_current: true,
-      });
-    }
+    // Meta attribution signals
+    addSignal('fbc', metaParams.fbc, 'param_builder');
+    addSignal('fbp', metaParams.fbp, 'param_builder');
+    addSignal('client_ip_address', metaParams.client_ip_address, 'param_builder');
+    addSignal('client_user_agent', metaParams.client_user_agent, 'param_builder');
 
     if (signalsToInsert.length > 0) {
       await supabase.from('lead_identity_signals').insert(signalsToInsert);
