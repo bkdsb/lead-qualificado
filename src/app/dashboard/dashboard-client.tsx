@@ -1,21 +1,22 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, AlertTriangle, TrendingUp, Users, Target, Activity, ShieldCheck } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, TrendingUp, Users, Target, ShieldCheck, HelpCircle, Activity, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { STAGE_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
+import Link from 'next/link';
 
-interface DashboardStats {
+export interface DashboardStats {
   purchases7d: number;
   qualifieds7d: number;
   conversionRate: string;
   totalLeads: number;
   readyForQualified: number;
   readyForPurchase: number;
-  errorDispatches: number;
-  recentDispatches: Array<Record<string, unknown>>;
+  recentLeads: Array<Record<string, unknown>>;
   lowPurchaseVolume: boolean;
 }
 
@@ -69,13 +70,6 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
       subtitle: "Score ≥ 80 qualificados",
       color: "text-green-400",
       tooltip: "Leads quentes. Alta probabilidade."
-    },
-    {
-      title: "Erros de Envio",
-      value: stats.errorDispatches,
-      subtitle: "Eventos CAPI falhos",
-      color: stats.errorDispatches > 0 ? "text-red-400" : "text-slate-7",
-      tooltip: "Falhas na API de Conversões."
     }
   ];
 
@@ -144,49 +138,57 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
         ))}
       </div>
 
-      {/* Dispatches Table */}
+      {/* Leads Table */}
       <Card>
         <CardHeader className="p-5 border-b border-white/[0.04]">
           <div className="flex items-center justify-between">
-            <CardTitle>Últimos Eventos Meta</CardTitle>
-            <Activity className="w-4 h-4 text-slate-7" />
+            <CardTitle>Últimos Leads (Entradas e Atualizações)</CardTitle>
+            <div className="flex items-center gap-3">
+              <Activity className="w-4 h-4 text-slate-7" />
+              <Link href="/leads">
+                <Button variant="secondary" className="h-7 text-[11px]">Ver todos <ArrowRight className="w-3 h-3 ml-1.5" /></Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-2/50 text-[11px] uppercase tracking-widest text-slate-7 font-semibold">
               <tr>
-                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Evento</th>
-                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Ambiente</th>
-                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Status</th>
-                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Match</th>
-                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Data</th>
+                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Nome</th>
+                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Estágio</th>
+                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Temperatura / Score</th>
+                <th className="px-5 py-3 font-medium border-b border-white/[0.04]">Entrada</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {stats.recentDispatches.length === 0 ? (
+              {stats.recentLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-slate-7 text-sm">
-                    Nenhum disparo na janela recente.
+                  <td colSpan={4} className="px-5 py-8 text-center text-slate-7 text-sm">
+                    Nenhum lead capturado recentemente.
                   </td>
                 </tr>
               ) : (
-                stats.recentDispatches.map((d) => (
-                  <tr key={d.id as string} className="transition-colors hover:bg-slate-2/50">
-                    <td className="px-5 py-3 font-medium text-slate-9">{d.event_name as string}</td>
+                stats.recentLeads.map((l) => (
+                  <tr key={l.id as string} className="transition-colors hover:bg-slate-2/50">
                     <td className="px-5 py-3">
-                      <Badge variant={d.environment === 'test' ? 'warning' : 'success'}>
-                        {d.environment === 'test' ? 'Teste' : 'Produção'}
+                      <Link href={`/leads/${l.id}`} className="font-medium text-slate-9 hover:underline">
+                        {l.name as string || 'Sem Nome'}
+                      </Link>
+                      <div className="text-[11px] text-slate-6 mt-0.5">{l.email as string || l.phone as string || 'Sem contato extra'}</div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge style={{ backgroundColor: `${STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS]}15`, color: STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS], border: `1px solid ${STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS]}30` }}>
+                        {STAGE_LABELS[l.stage as keyof typeof STAGE_LABELS]}
                       </Badge>
                     </td>
                     <td className="px-5 py-3">
-                      <Badge variant={d.status === 'success' ? 'success' : d.status === 'failed' ? 'danger' : 'neutral'}>
-                        {d.status === 'success' ? 'Sucesso' : d.status === 'failed' ? 'Falha' : d.status as string}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs font-mono font-medium">{l.score as number} pts</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-slate-8 font-mono">{d.match_strength_at_send as string || '—'}</td>
                     <td className="px-5 py-3 text-xs text-slate-7">
-                      {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      {new Date(l.created_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                     </td>
                   </tr>
                 ))

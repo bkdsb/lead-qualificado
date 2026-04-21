@@ -18,16 +18,14 @@ export default async function DashboardPage() {
     totalLeadsResult,
     readyForQualifiedResult,
     readyForPurchaseResult,
-    errorDispatchesResult,
-    recentDispatchesResult,
+    recentLeadsResult,
   ] = await Promise.all([
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'purchase').gte('updated_at', sevenDaysAgo),
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'qualified').gte('updated_at', sevenDaysAgo),
     supabase.from('leads').select('id', { count: 'exact', head: true }),
     supabase.from('leads').select('id', { count: 'exact', head: true }).in('stage', ['conversing', 'proposal']).gte('score', 50),
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'qualified').gte('score', 80),
-    supabase.from('meta_event_dispatches').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
-    supabase.from('meta_event_dispatches').select('*').order('dispatched_at', { ascending: false }).limit(5),
+    supabase.from('leads').select('id, name, email, phone, stage, score, created_at').order('created_at', { ascending: false }).limit(5),
   ]);
 
   const purchases7d = purchasesResult.count || 0;
@@ -38,7 +36,6 @@ export default async function DashboardPage() {
     : '0';
   const readyForQualified = readyForQualifiedResult.count || 0;
   const readyForPurchase = readyForPurchaseResult.count || 0;
-  const errorDispatches = errorDispatchesResult.count || 0;
 
   const stats = {
     purchases7d,
@@ -47,8 +44,7 @@ export default async function DashboardPage() {
     totalLeads: totalLeadsResult.count || 0,
     readyForQualified,
     readyForPurchase,
-    errorDispatches,
-    recentDispatches: recentDispatchesResult.data || [],
+    recentLeads: recentLeadsResult.data || [],
     lowPurchaseVolume: purchases7d < 5,
   };
 
