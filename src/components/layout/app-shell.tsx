@@ -98,13 +98,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div>
-            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">API de Conversões</div>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Conversões</div>
             <div className="space-y-0.5">
               {NAV_ITEMS.slice(2, 4).map(item => <NavButton key={item.href} item={item} />)}
             </div>
           </div>
           <div>
-            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Sistema</div>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
             <div className="space-y-0.5">
               {NAV_ITEMS.slice(4).map(item => <NavButton key={item.href} item={item} />)}
             </div>
@@ -114,7 +114,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="p-3 border-t border-white/[0.04]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-7 hover:bg-white/[0.04] hover:text-slate-9 transition-all duration-200"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-7 hover:bg-white/[0.04] hover:text-slate-9 transition-all duration-200 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sair
@@ -150,13 +150,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
               <div>
-                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">API de Conversões</div>
+                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Conversões</div>
                 <div className="space-y-0.5">
                   {NAV_ITEMS.slice(2, 4).map(item => <NavButton key={item.href} item={item} />)}
                 </div>
               </div>
               <div>
-                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Sistema</div>
+                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
                 <div className="space-y-0.5">
                   {NAV_ITEMS.slice(4).map(item => <NavButton key={item.href} item={item} />)}
                 </div>
@@ -166,7 +166,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="p-3 border-t border-white/[0.04]">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-7 hover:bg-white/[0.04] hover:text-slate-9 transition-all duration-200"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-7 hover:bg-white/[0.04] hover:text-slate-9 transition-all duration-200 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 Sair

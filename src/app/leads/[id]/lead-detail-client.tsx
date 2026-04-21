@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tooltip } from '@/components/ui/tooltip';
-import { ArrowLeft, User, Phone, Mail, Globe, MapPin, Search, Send, Activity, ShieldCheck, HelpCircle, CheckCircle2, AlertTriangle, Plus, ChevronRight, Hash } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Globe, Send, Activity, ShieldCheck, CheckCircle2, AlertTriangle, ChevronRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +33,9 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   const router = useRouter();
   const [data, setData] = useState<LeadData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'signals' | 'dispatches' | 'notes'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'technical'>('timeline');
+  const [showStageMenu, setShowStageMenu] = useState(false);
+  const [showEventMenu, setShowEventMenu] = useState(false);
 
   // Modal states
   const [showDispatch, setShowDispatch] = useState(false);
@@ -155,97 +156,96 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
 
   const EVENT_LABELS: Record<string, string> = {
     Lead: 'Lead',
-    QualifiedLead: 'Lead Qualificado',
+    QualifiedLead: 'Qualificado',
     Purchase: 'Venda',
     Schedule: 'Agendamento',
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-1 animate-fade-in">
-      {/* Editorial Header */}
-      <div className="sticky top-0 z-30 bg-slate-1/80 backdrop-blur-xl border-b border-white/[0.04] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/leads')} className="text-slate-8">
+      {/* Header — Clean */}
+      <div className="sticky top-0 z-30 bg-slate-1/80 backdrop-blur-xl border-b border-white/[0.04] px-4 md:px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/leads')} className="text-slate-7 shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white leading-tight">
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold tracking-tight text-white truncate">
               {lead.name || 'Sem nome'}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-0.5">
               <Badge variant={lead.stage === 'purchase' ? 'success' : lead.stage === 'qualified' ? 'warning' : 'neutral'}>
                 {STAGE_LABELS[lead.stage as LeadStage]}
               </Badge>
-              <span className="text-slate-6 text-xs font-mono tracking-wider">{lead.id.split('-')[0]}</span>
+              <span className="text-[11px] text-slate-6 font-mono">{lead.score} pts</span>
             </div>
           </div>
         </div>
         
-        {/* Primary Action Array */}
-        <div className="hidden md:flex items-center gap-2">
-          {allowedTransitions.map(s => (
-            <Button key={s} variant="secondary" onClick={() => handleStageChange(s)} className="text-xs h-8">
-              Mover para {STAGE_LABELS[s]} <ChevronRight className="w-3 h-3 ml-1" />
+        {/* Action Dropdowns */}
+        <div className="flex items-center gap-2">
+          {allowedTransitions.length > 0 && (
+            <div className="relative">
+              <Button variant="secondary" onClick={() => { setShowStageMenu(!showStageMenu); setShowEventMenu(false); }} className="text-[12px] h-8 gap-1.5">
+                Mover <ChevronDown className={cn("w-3 h-3 transition-transform", showStageMenu && "rotate-180")} />
+              </Button>
+              {showStageMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-white/[0.08] rounded-lg shadow-popover py-1 w-44 z-50">
+                  {allowedTransitions.map(s => (
+                    <button key={s} onClick={() => { handleStageChange(s); setShowStageMenu(false); }} className="w-full text-left px-3 py-2 text-[13px] text-slate-8 hover:bg-white/[0.04] hover:text-white transition-colors cursor-pointer">
+                      {STAGE_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="relative">
+            <Button variant="primary" onClick={() => { setShowEventMenu(!showEventMenu); setShowStageMenu(false); }} className="text-[12px] h-8 gap-1.5">
+              <Send className="w-3 h-3" /> Enviar <ChevronDown className={cn("w-3 h-3 transition-transform", showEventMenu && "rotate-180")} />
             </Button>
-          ))}
-          <div className="w-px h-6 bg-white/[0.04] mx-2" />
-          {META_EVENT_NAMES.map(ev => (
-            <Button key={ev} variant="primary" onClick={() => openDispatchModal(ev)} className="text-xs h-8">
-              <Send className="w-3 h-3 mr-1.5 opacity-70" /> {EVENT_LABELS[ev] || ev}
-            </Button>
-          ))}
+            {showEventMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-surface border border-white/[0.08] rounded-lg shadow-popover py-1 w-44 z-50">
+                {META_EVENT_NAMES.map(ev => (
+                  <button key={ev} onClick={() => { openDispatchModal(ev); setShowEventMenu(false); }} className="w-full text-left px-3 py-2 text-[13px] text-slate-8 hover:bg-white/[0.04] hover:text-white transition-colors cursor-pointer">
+                    {EVENT_LABELS[ev] || ev}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Ledger Layout */}
-      <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8">
+      <div className="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         
         {/* Left Column: Metrics & Identity */}
         <div className="space-y-6">
+          {/* Score + Match — Merged */}
           <Card>
-            <CardHeader className="p-5 pb-3 border-b border-white/[0.04]">
-              <CardTitle className="uppercase text-[11px] tracking-widest text-slate-7 flex items-center justify-between">
-                Performance Score
-                <Activity className="w-3.5 h-3.5" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5">
+            <CardContent className="p-4 space-y-4">
               <div className="flex items-end justify-between">
-                <div className="text-4xl font-mono font-bold tracking-tighter text-white">{lead.score}</div>
-                <Badge variant="neutral" className="uppercase font-bold tracking-widest">{SCORE_BAND_LABELS[lead.score_band as ScoreBand]}</Badge>
-              </div>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('conversation_started')} className="text-xs bg-slate-2 border border-slate-3">+ Conversa</Button>
-                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('proposal_sent')} className="text-xs bg-slate-2 border border-slate-3">+ Proposta</Button>
-                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('no_response')} className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">- Sem resposta</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-5 pb-3 border-b border-white/[0.04]">
-              <CardTitle className="uppercase text-[11px] tracking-widest text-slate-7 flex items-center justify-between">
-                <Tooltip content="Qualidade dos dados de identidade do lead comparado aos requisitos do Facebook.">
-                  <span className="flex items-center gap-1.5 cursor-help">Força do Match <HelpCircle className="w-3 h-3" /></span>
-                </Tooltip>
-                <ShieldCheck className="w-3.5 h-3.5" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div className="text-lg font-medium text-white">{MATCH_STRENGTH_LABELS[matchAnalysis.strength]}</div>
-                <span className="text-xs text-slate-6 font-mono">{matchAnalysis.availableSignals.length}/10 sinais</span>
-              </div>
-              
-              {matchAnalysis.warnings.length > 0 && (
-                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                  {matchAnalysis.warnings.map((w, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-yellow-500/90 leading-relaxed mb-1 last:mb-0">
-                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {w}
-                    </div>
-                  ))}
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-slate-7 mb-1">Score</div>
+                  <div className="text-3xl font-mono font-bold tracking-tighter text-white">{lead.score}</div>
                 </div>
-              )}
+                <Badge variant="neutral" className="uppercase font-bold tracking-widest text-[10px]">{SCORE_BAND_LABELS[lead.score_band as ScoreBand]}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('conversation_started')} className="text-[11px] h-7 bg-slate-2 border border-slate-3">+ Conversa</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('proposal_sent')} className="text-[11px] h-7 bg-slate-2 border border-slate-3">+ Proposta</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleScoreEvent('no_response')} className="text-[11px] h-7 text-red-400 hover:bg-red-500/10">- S/ Resposta</Button>
+              </div>
+              <div className="pt-3 border-t border-white/[0.04]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-7 uppercase tracking-widest">
+                    <ShieldCheck className="w-3 h-3" /> Match
+                  </div>
+                  <span className="text-[12px] text-slate-6 font-mono">{matchAnalysis.availableSignals.length}/10</span>
+                </div>
+                <div className="text-sm font-medium text-white mt-1">{MATCH_STRENGTH_LABELS[matchAnalysis.strength]}</div>
+              </div>
             </CardContent>
           </Card>
 
@@ -278,14 +278,13 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
           <div className="flex items-center border-b border-white/[0.04] bg-slate-2/50 px-2 lg:px-4">
             {([
               { key: 'timeline', label: 'Histórico' },
-              { key: 'signals', label: 'Sinais e Atribuição' },
-              { key: 'dispatches', label: 'Disparos Meta' },
               { key: 'notes', label: 'Anotações' },
+              { key: 'technical', label: 'Técnico' },
             ] as const).map(tab => (
               <button
                 key={tab.key}
                 className={cn(
-                  "px-4 py-3 text-xs font-medium tracking-wide transition-all border-b-2 whitespace-nowrap",
+                  "px-4 py-3 text-xs font-medium tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer",
                   activeTab === tab.key 
                     ? "border-slate-9 text-slate-10" 
                     : "border-transparent text-slate-7 hover:text-slate-9 hover:border-slate-7"
@@ -297,7 +296,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-5 lg:p-8">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -336,25 +335,24 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                         {item.type === 'score' && (
                           <div className="flex items-center gap-3">
                             <div className="text-sm text-slate-9 tracking-tight">
-                              Score: <span className="font-mono">{(item.data as DbLeadScoreEvent).event_type}</span>
-                              <span className={cn("ml-2 font-mono font-bold", (item.data as DbLeadScoreEvent).points > 0 ? "text-green-400" : "text-red-400")}>
-                                {(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points}
+                              <span className={cn("font-mono font-bold", (item.data as DbLeadScoreEvent).points > 0 ? "text-green-400" : "text-red-400")}>
+                                {(item.data as DbLeadScoreEvent).points > 0 ? '+' : ''}{(item.data as DbLeadScoreEvent).points} pts
                               </span>
+                              <span className="text-slate-7 ml-1.5">{(item.data as DbLeadScoreEvent).note || (item.data as DbLeadScoreEvent).event_type}</span>
                             </div>
-                            <button className="text-slate-7 hover:text-red-400 transition-colors" onClick={() => handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id)}>✕</button>
+                            <button className="text-slate-7 hover:text-red-400 transition-colors cursor-pointer" onClick={() => handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id)}>✕</button>
                           </div>
                         )}
 
                         {item.type === 'dispatch' && (
                           <div>
                             <div className="text-sm text-slate-9 tracking-tight font-medium">
-                              Envio API: {EVENT_LABELS[(item.data as DbMetaEventDispatch).event_name] || (item.data as DbMetaEventDispatch).event_name}
+                              Envio: {EVENT_LABELS[(item.data as DbMetaEventDispatch).event_name] || (item.data as DbMetaEventDispatch).event_name}
                             </div>
                             <div className="flex items-center gap-2 mt-1.5">
                               <Badge variant={(item.data as DbMetaEventDispatch).status === 'success' ? 'success' : 'danger'}>
-                                {(item.data as DbMetaEventDispatch).status === 'success' ? 'Sucesso 200' : 'Falha'}
+                                {(item.data as DbMetaEventDispatch).status === 'success' ? 'Enviado ✓' : 'Falha'}
                               </Badge>
-                              <span className="text-xs text-slate-6 font-mono">{(item.data as DbMetaEventDispatch).match_strength_at_send}</span>
                             </div>
                           </div>
                         )}
@@ -372,62 +370,59 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                   </div>
                 )}
 
-                {/* Signals Map */}
-                {activeTab === 'signals' && (
+                {/* Technical Tab — Signals + Dispatches merged */}
+                {activeTab === 'technical' && (
                   <div className="space-y-8">
+                    {/* Signals */}
                     <div>
-                      <h4 className="text-xs font-semibold text-slate-7 uppercase tracking-widest mb-3">Vetor Disponível</h4>
-                      <div className="flex flex-wrap gap-2">
+                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Sinais disponíveis</h4>
+                      <div className="flex flex-wrap gap-1.5">
                         {matchAnalysis.availableSignals.map(s => (
-                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 text-xs font-mono border border-green-500/20">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> {s}
+                          <span key={s} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400 text-[11px] font-mono border border-green-500/20">
+                            <CheckCircle2 className="w-3 h-3" /> {s}
                           </span>
                         ))}
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-slate-7 uppercase tracking-widest mb-3">Sinais Cegos (Faltantes)</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {matchAnalysis.missingSignals.map(s => (
-                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-3 text-slate-6 text-xs font-mono border border-slate-4">
-                            <AlertTriangle className="w-3 h-3 opacity-50" /> {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Raw Dispatches */}
-                {activeTab === 'dispatches' && (
-                  <div className="space-y-4">
-                    {dispatches.length === 0 ? <p className="text-sm text-slate-7">Nenhum payload disparado via CAPI.</p> :
-                      dispatches.map(d => (
-                      <div key={d.id} className="p-4 rounded-lg border border-white/[0.04] bg-slate-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="font-medium text-white">{EVENT_LABELS[d.event_name] || d.event_name}</div>
-                            <div className="text-xs text-slate-6 font-mono mt-0.5">{new Date(d.dispatched_at).toLocaleString('pt-BR', { timeStyle: 'medium', dateStyle: 'short' })}</div>
+                      {matchAnalysis.missingSignals.length > 0 && (
+                        <div className="mt-3">
+                          <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-2">Sinais faltantes</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {matchAnalysis.missingSignals.map(s => (
+                              <span key={s} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-3 text-slate-6 text-[11px] font-mono border border-slate-4">
+                                {s}
+                              </span>
+                            ))}
                           </div>
-                          <Badge variant={d.status === 'success' ? 'success' : 'danger'}>{d.status.toUpperCase()}</Badge>
                         </div>
-                        <details className="mt-4 group">
-                          <summary className="text-xs text-blue-400 cursor-pointer font-medium tracking-wide flex items-center outline-none">
-                            <ChevronRight className="w-3.5 h-3.5 mr-1 transition-transform group-open:rotate-90" />
-                            VIEW RAW PAYLOAD
-                          </summary>
-                          <div className="mt-3 p-3 rounded bg-slate-1 border border-white/[0.04] overflow-x-auto">
-                            <pre className="text-[10px] text-slate-7 font-mono">{JSON.stringify(d.payload_sent, null, 2)}</pre>
-                            {d.response_body && (
-                              <>
-                                <div className="text-[10px] text-slate-6 font-mono mt-3 mb-1 border-t border-white/[0.04] pt-2">RESPONSE</div>
-                                <pre className="text-[10px] text-slate-7 font-mono">{JSON.stringify(d.response_body, null, 2)}</pre>
-                              </>
-                            )}
-                          </div>
-                        </details>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+
+                    {/* Dispatches */}
+                    <div>
+                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Disparos CAPI</h4>
+                      {dispatches.length === 0 ? <p className="text-sm text-slate-7">Nenhum disparo.</p> :
+                        <div className="space-y-2">
+                          {dispatches.map(d => (
+                            <details key={d.id} className="group rounded-md border border-white/[0.04] bg-slate-2 overflow-hidden">
+                              <summary className="flex items-center justify-between px-3 py-2.5 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={d.status === 'success' ? 'success' : 'danger'} className="text-[10px]">
+                                    {d.status === 'success' ? 'OK' : 'Erro'}
+                                  </Badge>
+                                  <span className="text-[13px] font-medium text-slate-9">{EVENT_LABELS[d.event_name] || d.event_name}</span>
+                                  <span className="text-[11px] text-slate-6">{new Date(d.dispatched_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                                </div>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-6 transition-transform group-open:rotate-90" />
+                              </summary>
+                              <div className="px-3 pb-3">
+                                <div className="text-[10px] text-slate-6 font-mono mb-2">Match: {d.match_strength_at_send} · HTTP: {d.response_status}</div>
+                                <pre className="text-[10px] text-slate-7 font-mono bg-slate-1 border border-white/[0.04] rounded p-2.5 overflow-auto max-h-[150px]">{JSON.stringify(d.payload_sent, null, 2)}</pre>
+                              </div>
+                            </details>
+                          ))}
+                        </div>
+                      }
+                    </div>
                   </div>
                 )}
 
@@ -501,13 +496,8 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                       </div>
                     )}
 
-                    <div className="text-xs text-slate-7 bg-slate-2 border border-slate-3 rounded p-4 font-mono">
-                      Lead ID: {lead.id.split('-')[0]}<br/>
-                      Força do Match: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]}
-                    </div>
-
-                    <div className="flex justify-between items-center bg-slate-2 p-4 rounded-md border border-white/[0.04]">
-                      <span className="text-yellow-500/80">Forçar Reenvio: Ativo</span>
+                    <div className="text-[12px] text-slate-6 bg-slate-2 border border-slate-3 rounded-md p-3">
+                      Match: {MATCH_STRENGTH_LABELS[matchAnalysis.strength]} · Reenvio forçado
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.04]">
