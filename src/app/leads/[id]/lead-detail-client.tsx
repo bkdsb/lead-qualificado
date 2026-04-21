@@ -117,7 +117,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
       body: JSON.stringify({
         lead_id: leadId,
         event_name: eventName,
-        is_test: true,
+        is_test: process.env.NEXT_PUBLIC_APP_ENV !== 'production',
         custom_data: eventName === 'Purchase' ? { value: initialValue, currency: initialCurrency } : undefined,
       }),
     });
@@ -135,7 +135,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
       body: JSON.stringify({
         lead_id: leadId,
         event_name: dispatchEvent,
-        is_test: true,
+        is_test: process.env.NEXT_PUBLIC_APP_ENV !== 'production',
         override_idempotency: true,
         confirmation_text: requiresConfirm ? confirmText : undefined,
         custom_data: dispatchEvent === 'Purchase' ? { value: purchaseValue, currency: currency } : undefined,

@@ -97,6 +97,17 @@ export async function POST(request: NextRequest) {
     }, { status: result.responseStatus === 0 ? 500 : result.responseStatus });
   }
 
+  // Sync CRM stage with manual dispatch to reflect on Dashboard
+  if (result.success) {
+    let newStage = null;
+    if (event_name === 'Purchase') newStage = 'purchase';
+    if (event_name === 'QualifiedLead') newStage = 'qualified';
+
+    if (newStage) {
+      await admin.from('leads').update({ stage: newStage }).eq('id', lead_id);
+    }
+  }
+
   return NextResponse.json({
     success: true,
     dispatch_id: result.dispatchId,
