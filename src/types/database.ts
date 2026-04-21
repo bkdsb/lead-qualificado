@@ -43,7 +43,9 @@ export type ScoreEventType =
 export type SignalType =
   | 'email' | 'phone' | 'fbc' | 'fbp' | 'ctwa_clid'
   | 'external_id' | 'client_ip_address' | 'client_user_agent'
-  | 'fn' | 'ln' | 'ct' | 'st' | 'zp' | 'country' | 'db' | 'ge';
+  | 'fn' | 'ln' | 'ct' | 'st' | 'zp' | 'country' | 'db' | 'ge'
+  | 'lead_id' | 'fb_login_id' | 'subscription_id'
+  | 'ig_account_id' | 'ig_sid' | 'page_id' | 'page_scoped_user_id';
 
 /** Signal source */
 export type SignalSource = 'lp' | 'whatsapp' | 'manual' | 'webhook' | 'api';

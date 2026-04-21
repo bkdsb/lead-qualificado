@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { hashSignal } from './hash-utils';
-import { HASHABLE_SIGNALS, UNHASHABLE_SIGNALS } from '@/lib/utils/constants';
+import { HASHABLE_SIGNALS } from '@/lib/utils/constants';
 import type { DbLead, DbLeadIdentitySignal, ActionSource, MessagingChannel } from '@/types/database';
 import type { MetaEventPayload, MetaEventData, MetaUserData, MetaCustomData, PayloadBuildResult } from './types';
 import { evaluateMatchStrength } from '@/lib/engines/match-strength';
@@ -26,11 +26,17 @@ interface BuildPayloadOptions {
  * Build a Meta CAPI event payload from a lead's data.
  *
  * Rules:
- * - Only sends fields that actually have values
- * - Hashes fields per Meta's requirements
+ * - Only sends fields that actually have values (never sends empty/null)
+ * - Hashes fields per Meta's requirements (em, ph, fn, ln, ct, st, zp, country, db, ge)
+ * - external_id is hashed (Meta: "Hashing recomendado")
  * - Never fabricates fbc/fbp/ctwa_clid
+ * - lead_id, fb_login_id, subscription_id sent raw (no hash)
+ * - ig_account_id, ig_sid sent raw for Instagram attribution
  * - Purchase always includes value + currency
  * - test_event_code only in test mode
+ * - data_processing_options always included (empty array = no restrictions)
+ * - event_source_url required for website action_source
+ * - client_user_agent required for website action_source
  */
 export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResult {
   const {
@@ -49,7 +55,7 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
   const signalsMissing: string[] = [];
   const warnings: string[] = [];
 
-  // Build user_data conditionally
+  // Build user_data conditionally — only add fields with actual values
   const userData: MetaUserData = {};
 
   // Helper to get current signal value by type
@@ -58,7 +64,8 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     return signal?.signal_value;
   };
 
-  // Process hashable signals — wrap in arrays as Meta expects
+  // ---- 1. Process hashable signals (em, ph, fn, ln, ct, st, zp, country, db, ge) ----
+  // These are wrapped in arrays as Meta expects
   const hashableFieldMap: Record<string, keyof MetaUserData> = {
     email: 'em',
     phone: 'ph',
@@ -112,13 +119,17 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     }
   }
 
-  // Process unhashable signals
+  // ---- 2. external_id — hashed per Meta recommendation ----
   const externalId = getSignal('external_id') || lead.external_id;
   if (externalId) {
-    userData.external_id = [externalId];
-    signalsUsed.push('external_id');
+    const hashedExId = hashSignal('external_id', externalId);
+    if (hashedExId) {
+      userData.external_id = [hashedExId];
+      signalsUsed.push('external_id');
+    }
   }
 
+  // ---- 3. fbc / fbp — NOT hashed, sent raw ----
   const fbc = getSignal('fbc');
   if (fbc) {
     userData.fbc = fbc;
@@ -135,6 +146,7 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     signalsMissing.push('fbp');
   }
 
+  // ---- 4. ctwa_clid — for business_messaging ----
   const ctwaClid = getSignal('ctwa_clid');
   if (ctwaClid) {
     userData.ctwa_clid = ctwaClid;
@@ -144,6 +156,7 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     warnings.push('Business Messaging event sem ctwa_clid — match será reduzido');
   }
 
+  // ---- 5. IP / User Agent — NOT hashed ----
   const clientIp = getSignal('client_ip_address');
   if (clientIp) {
     userData.client_ip_address = clientIp;
@@ -154,6 +167,64 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
   if (clientUa) {
     userData.client_user_agent = clientUa;
     signalsUsed.push('client_user_agent');
+  }
+
+  // ---- 6. lead_id — Meta Ads Lead ID for Conversion Leads optimization ----
+  // NOT hashed. This is the Meta-generated lead form ID (15-17 digits).
+  const leadId = getSignal('lead_id');
+  if (leadId) {
+    userData.lead_id = leadId;
+    signalsUsed.push('lead_id');
+  }
+
+  // ---- 7. fb_login_id — NOT hashed ----
+  const fbLoginId = getSignal('fb_login_id');
+  if (fbLoginId) {
+    userData.fb_login_id = fbLoginId;
+    signalsUsed.push('fb_login_id');
+  }
+
+  // ---- 8. subscription_id — NOT hashed ----
+  const subscriptionId = getSignal('subscription_id');
+  if (subscriptionId) {
+    userData.subscription_id = subscriptionId;
+    signalsUsed.push('subscription_id');
+  }
+
+  // ---- 9. ig_account_id / ig_sid — Instagram attribution ----
+  const igAccountId = getSignal('ig_account_id');
+  if (igAccountId) {
+    userData.ig_account_id = igAccountId;
+    signalsUsed.push('ig_account_id');
+  }
+
+  const igSid = getSignal('ig_sid');
+  if (igSid) {
+    userData.ig_sid = igSid;
+    signalsUsed.push('ig_sid');
+  }
+
+  // ---- 10. page_id / page_scoped_user_id — for Messenger ----
+  const pageId = getSignal('page_id');
+  if (pageId) {
+    userData.page_id = pageId;
+    signalsUsed.push('page_id');
+  }
+
+  const pageScopedUserId = getSignal('page_scoped_user_id');
+  if (pageScopedUserId) {
+    userData.page_scoped_user_id = pageScopedUserId;
+    signalsUsed.push('page_scoped_user_id');
+  }
+
+  // ---- Validate required fields for website events ----
+  if (actionSource === 'website') {
+    if (!clientUa) {
+      warnings.push('⚠ Evento website sem client_user_agent — OBRIGATÓRIO pela Meta. Usando fallback do admin.');
+    }
+    if (!eventSourceUrl) {
+      warnings.push('⚠ Evento website sem event_source_url — OBRIGATÓRIO pela Meta.');
+    }
   }
 
   // Build event data
@@ -167,6 +238,9 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
     event_id: eventId,
     action_source: actionSource,
     user_data: userData,
+    // Privacy compliance: always include data_processing_options
+    // Empty array = no restrictions (appropriate for Brazil/non-LDU markets)
+    data_processing_options: [],
   };
 
   // Add event_source_url for website events

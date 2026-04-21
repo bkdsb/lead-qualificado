@@ -17,8 +17,13 @@ export interface MetaUserData {
   fbc?: string;
   fbp?: string;
   ctwa_clid?: string;
+  lead_id?: string;
+  fb_login_id?: string;
+  subscription_id?: string;
   page_id?: string;
   page_scoped_user_id?: string;
+  ig_account_id?: string;
+  ig_sid?: string;
 }
 
 export interface MetaCustomData {
@@ -43,6 +48,9 @@ export interface MetaEventData {
   user_data: MetaUserData;
   custom_data?: MetaCustomData;
   opt_out?: boolean;
+  data_processing_options?: string[];
+  data_processing_options_country?: number;
+  data_processing_options_state?: number;
 }
 
 export interface MetaEventPayload {

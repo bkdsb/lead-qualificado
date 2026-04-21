@@ -24,12 +24,21 @@ export function sha256(value: string): string {
  * - db: YYYYMMDD digits only
  * - ge: first char lowercase (m/f)
  *
- * For unhashable signals (fbc, fbp, ctwa_clid, external_id, IP, UA),
+ * For external_id: Meta recommends hashing, so we SHA-256 directly (no normalization).
+ *
+ * For unhashable signals (fbc, fbp, ctwa_clid, lead_id, IP, UA, ig_sid, etc.),
  * returns the raw value unchanged.
  */
 export function hashSignal(signalType: string, value: string): string {
+  // external_id: Meta recommends hashing (SHA-256 directly, no normalization needed)
+  if (signalType === 'external_id') {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    return sha256(trimmed);
+  }
+
   if (!(HASHABLE_SIGNALS as readonly string[]).includes(signalType)) {
-    // Don't hash fbc, fbp, ctwa_clid, external_id, ip, user_agent
+    // Don't hash fbc, fbp, ctwa_clid, lead_id, ip, user_agent, etc.
     return value;
   }
 

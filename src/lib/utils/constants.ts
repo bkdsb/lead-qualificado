@@ -110,4 +110,14 @@ export const MATCH_STRENGTH_COLORS: Record<MatchStrength, string> = {
 export const HASHABLE_SIGNALS = ['email', 'phone', 'fn', 'ln', 'ct', 'st', 'zp', 'country', 'db', 'ge'] as const;
 
 /** Signals that must NOT be hashed */
-export const UNHASHABLE_SIGNALS = ['fbc', 'fbp', 'ctwa_clid', 'external_id', 'client_ip_address', 'client_user_agent'] as const;
+export const UNHASHABLE_SIGNALS = [
+  'fbc', 'fbp', 'ctwa_clid', 'client_ip_address', 'client_user_agent',
+  'lead_id', 'fb_login_id', 'subscription_id',
+  'ig_account_id', 'ig_sid', 'page_id', 'page_scoped_user_id',
+] as const;
+
+/**
+ * Signals where hashing is RECOMMENDED by Meta (not required but improves EMQ).
+ * external_id falls in this category.
+ */
+export const HASH_RECOMMENDED_SIGNALS = ['external_id'] as const;
