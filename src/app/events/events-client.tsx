@@ -9,8 +9,8 @@ import { useState } from 'react';
 const EVENT_LABELS: Record<string, string> = {
   Lead: 'Lead',
   QualifiedLead: 'Lead Qualificado',
-  Purchase: 'Venda',
   Schedule: 'Agendamento',
+  Purchase: 'Venda',
 };
 
 export default function EventsClient({ dispatches }: { dispatches: Array<Record<string, unknown>> }) {

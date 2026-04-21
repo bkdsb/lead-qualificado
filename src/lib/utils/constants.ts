@@ -72,7 +72,7 @@ export const MATCH_STRENGTH_VALUES: Record<MatchStrength, number> = {
 };
 
 /** Meta CAPI event names we support */
-export const META_EVENT_NAMES = ['Lead', 'QualifiedLead', 'Purchase', 'Schedule'] as const;
+export const META_EVENT_NAMES = ['Lead', 'QualifiedLead', 'Schedule', 'Purchase'] as const;
 export type MetaEventName = (typeof META_EVENT_NAMES)[number];
 
 /** Events that require dual confirmation */
