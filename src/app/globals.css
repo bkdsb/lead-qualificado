@@ -85,13 +85,14 @@
     --danger-subtle: rgba(248, 113, 113, 0.1);
   }
 
-  body {
+  html, body {
     background-color: var(--bg-root);
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   ::selection {

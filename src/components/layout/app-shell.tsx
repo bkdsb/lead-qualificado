@@ -41,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <button
         onClick={() => handleNavClick(item.href)}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group",
+          "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group cursor-pointer",
           active ? "bg-white/[0.06] text-slate-10" : "text-slate-8 hover:bg-white/[0.04] hover:text-slate-9"
         )}
       >
@@ -52,7 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-1 text-slate-9">
+    <div className="flex min-h-screen w-full bg-slate-1 text-slate-9 overflow-x-hidden">
       {isTest && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-500 text-[11px] font-medium tracking-widest uppercase py-1 text-center backdrop-blur-md">
           ● Modo Teste Ativo
