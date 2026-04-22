@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutDashboard, Users, Send, ShieldCheck, Activity, Settings, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,24 +17,28 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Configurações', icon: Settings, adminOnly: true },
 ];
 
+function getCachedRole(): 'admin' | 'operator' {
+  if (typeof window === 'undefined') return 'operator';
+  return (sessionStorage.getItem('user_role') as 'admin' | 'operator') || 'operator';
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>(getCachedRole);
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
 
-  // Fetch user role on mount — defaults to 'operator' (safe: real security is API-level)
-  // Only promotes to admin when positively confirmed
+  // Fetch user role once — cache in sessionStorage to prevent flash on navigation
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         supabase.from('users').select('role').eq('id', user.id).single().then(({ data }) => {
-          if (data?.role === 'admin') {
-            setUserRole('admin');
-          }
+          const role = data?.role === 'admin' ? 'admin' : 'operator';
+          setUserRole(role);
+          sessionStorage.setItem('user_role', role);
         });
       }
     });
@@ -43,29 +48,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleLogout() {
     const supabase = createClient();
+    sessionStorage.removeItem('user_role');
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   }
 
-  function handleNavClick(href: string) {
-    setIsMobileMenuOpen(false);
-    router.push(href);
-  }
-
-  const NavButton = ({ item }: { item: typeof NAV_ITEMS[number] }) => {
+  const NavLink = ({ item }: { item: typeof NAV_ITEMS[number] }) => {
     const active = pathname === item.href || (item.href === '/leads' && pathname.startsWith('/leads/'));
     return (
-      <button
-        onClick={() => handleNavClick(item.href)}
+      <Link
+        href={item.href}
+        onClick={() => setIsMobileMenuOpen(false)}
+        prefetch
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group cursor-pointer",
+          "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 ease-out group",
           active ? "bg-white/[0.06] text-slate-10" : "text-slate-8 hover:bg-white/[0.04] hover:text-slate-9"
         )}
       >
         <item.icon className={cn("w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110", active && "text-white")} />
         {item.label}
-      </button>
+      </Link>
     );
   };
 
@@ -112,14 +115,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div>
             <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
             <div className="space-y-0.5">
-              {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+              {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
             </div>
           </div>
           {userRole === 'admin' && (
             <div>
               <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
               <div className="space-y-0.5">
-                {visibleNavItems.filter(i => i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+                {visibleNavItems.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
               </div>
             </div>
           )}
@@ -160,14 +163,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div>
                 <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
                 <div className="space-y-0.5">
-                  {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+                  {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
                 </div>
               </div>
               {userRole === 'admin' && (
                 <div>
                   <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
                   <div className="space-y-0.5">
-                    {visibleNavItems.filter(i => i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+                    {visibleNavItems.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
                   </div>
                 </div>
               )}
