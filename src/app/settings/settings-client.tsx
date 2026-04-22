@@ -80,14 +80,15 @@ export default function SettingsClient({
   const isTestMode = testModeEnabled?.value === true || testModeEnabled?.value === 'true';
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-6 animate-fade-in">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-white">Configurações</h1>
         <p className="text-[13px] text-slate-7 mt-0.5">Controles globais do sistema e conexão Meta.</p>
       </div>
 
-      {/* CAPI Connection */}
-      <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* CAPI Connection */}
+        <Card className="h-fit">
         <CardHeader className="p-4 pb-3 border-b border-white/[0.04] flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-slate-6" />
@@ -151,10 +152,26 @@ export default function SettingsClient({
                   </div>
                 ))}
               </motion.div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lead Scoring (Placeholder/Future) */}
+        <Card className="h-fit">
+          <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-6" />
+              <CardTitle>Lead Scoring & Regras</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="text-[13px] text-slate-6 bg-slate-2/50 border border-dashed border-white/[0.04] rounded-lg p-6 text-center">
+              A configuração de pontuação de Leads (Scoring) e Pacotes de Serviços estará disponível em breve.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Scoring — Readable */}
       <Card>

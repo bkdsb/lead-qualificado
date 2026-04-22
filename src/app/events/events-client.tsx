@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import React from 'react';
+import { cn } from '@/lib/utils';
 
 const EVENT_LABELS: Record<string, string> = {
   Lead: 'Lead',
@@ -52,50 +54,56 @@ export default function EventsClient({ dispatches }: { dispatches: Array<Record<
             {dispatches.length === 0 ? (
               <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-7 text-sm">Nenhum evento enviado.</td></tr>
             ) : dispatches.map(d => (
-              <tr key={d.id as string} className="transition-colors hover:bg-slate-2/50">
-                <td className="px-4 py-3 text-slate-9 truncate max-w-[160px]">
-                  {(d.leads as Record<string, unknown>)?.name as string || '—'}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-medium text-white">{EVENT_LABELS[d.event_name as string] || d.event_name as string}</span>
-                  {d.environment === 'test' && <span className="ml-2 text-[10px] text-yellow-500 font-mono">TEST</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={d.status === 'success' ? 'success' : d.status === 'failed' ? 'danger' : 'neutral'}>
-                    {d.status === 'success' ? 'Enviado' : d.status === 'failed' ? 'Erro' : d.status as string}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-[12px] text-slate-6">
-                  {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => setExpandedId(expandedId === d.id as string ? null : d.id as string)}
-                    className="text-slate-6 hover:text-slate-9 transition-colors cursor-pointer p-1"
-                  >
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedId === d.id ? 'rotate-180' : ''}`} />
-                  </button>
-                  {expandedId === d.id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="mt-2"
+              <React.Fragment key={d.id as string}>
+                <tr className={cn("transition-colors hover:bg-slate-2/50", expandedId === d.id && "bg-slate-2/30")}>
+                  <td className="px-4 py-3 text-slate-9 truncate max-w-[160px]">
+                    {(d.leads as Record<string, unknown>)?.name as string || '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-medium text-white">{EVENT_LABELS[d.event_name as string] || d.event_name as string}</span>
+                    {d.environment === 'test' && <span className="ml-2 text-[10px] text-yellow-500 font-mono">TEST</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant={d.status === 'success' ? 'success' : d.status === 'failed' ? 'danger' : 'neutral'}>
+                      {d.status === 'success' ? 'Enviado' : d.status === 'failed' ? 'Erro' : d.status as string}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-[12px] text-slate-6">
+                    {new Date(d.dispatched_at as string).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setExpandedId(expandedId === d.id as string ? null : d.id as string)}
+                      className="text-slate-6 hover:text-slate-9 transition-colors cursor-pointer p-1"
                     >
-                      <div className="text-[10px] text-slate-6 font-mono space-y-1 mb-2">
-                        <div>Match: <span className="text-slate-8">{d.match_strength_at_send as string || '—'}</span></div>
-                        <div>HTTP: <span className="text-slate-8">{d.response_status as number || '—'}</span></div>
-                        <div>Ambiente: <span className="text-slate-8">{d.environment === 'test' ? 'Teste' : 'Produção'}</span></div>
-                      </div>
-                      <pre className="text-[10px] text-slate-7 font-mono bg-slate-1 border border-white/[0.04] rounded-md p-3 overflow-auto max-h-[180px]">
-                        {JSON.stringify(d.payload_sent, null, 2)}
-                      </pre>
-                      {Boolean(d.error_message) && (
-                        <div className="text-[11px] text-red-400 mt-2">{String(d.error_message)}</div>
-                      )}
-                    </motion.div>
-                  )}
-                </td>
-              </tr>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedId === d.id ? 'rotate-180' : ''}`} />
+                    </button>
+                  </td>
+                </tr>
+                {expandedId === d.id && (
+                  <tr>
+                    <td colSpan={5} className="p-0 border-b border-white/[0.04]">
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="bg-slate-2/20 px-4 pb-4 overflow-hidden"
+                      >
+                        <div className="pt-2 text-[10px] text-slate-6 font-mono flex items-center gap-4 mb-3">
+                          <div>Match: <span className="text-slate-8">{d.match_strength_at_send as string || '—'}</span></div>
+                          <div>HTTP: <span className="text-slate-8">{d.response_status as number || '—'}</span></div>
+                          <div>Ambiente: <span className="text-slate-8">{d.environment === 'test' ? 'Teste' : 'Produção'}</span></div>
+                        </div>
+                        <pre className="text-[10px] text-slate-7 font-mono bg-slate-1 border border-white/[0.04] rounded-md p-3 overflow-auto max-h-[180px] w-full whitespace-pre-wrap break-all">
+                          {JSON.stringify(d.payload_sent, null, 2)}
+                        </pre>
+                        {Boolean(d.error_message) && (
+                          <div className="text-[11px] text-red-400 mt-2">{String(d.error_message)}</div>
+                        )}
+                      </motion.div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
