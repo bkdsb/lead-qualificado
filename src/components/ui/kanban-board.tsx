@@ -264,9 +264,23 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   // Local state for optimistic UI during drag
   const [boardLeads, setBoardLeads] = useState<DbLead[]>(leads);
 
-  // Sync when props change (only when not actively dragging, confirming, or moving)
+  // Sync when props change (only when not actively dragging or confirming)
   useEffect(() => {
-    if (!activeId && !pendingMove && !movingLead) {
+    if (activeId || pendingMove) return;
+
+    if (movingLead) {
+      const updated = leads.find(l => l.id === movingLead.id);
+      if (updated && updated.stage === movingLead.toStage) {
+        // Parent confirmed the move — sync fully and clear loading
+        setBoardLeads(leads);
+        setMovingLead(null);
+      } else {
+        // Parent hasn't caught up yet — keep card in target column
+        setBoardLeads(leads.map(l =>
+          l.id === movingLead.id ? { ...l, stage: movingLead.toStage } : l
+        ));
+      }
+    } else {
       setBoardLeads(leads);
     }
   }, [leads, activeId, pendingMove, movingLead]);
@@ -380,14 +394,16 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
       const ok = await onStageChange(leadId, toStage, purchaseValue);
       if (ok) {
         toast.success(`✓ Lead movido para ${STAGE_LABELS[toStage]}`);
+        // Keep movingLead active — the useEffect will clear it
+        // once the parent's leads prop reflects the new stage
       } else {
         toast.error('Falha ao mover lead');
         setBoardLeads(leads);
+        setMovingLead(null);
       }
     } catch {
       toast.error('Falha ao mover lead');
       setBoardLeads(leads);
-    } finally {
       setMovingLead(null);
     }
   }
