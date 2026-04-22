@@ -25,6 +25,7 @@ import { STAGE_LABELS, STAGE_COLORS, SCORE_BAND_LABELS, STAGE_TRANSITIONS } from
 import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Phone, Mail, ArrowRight, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -93,7 +94,80 @@ function KanbanCard({ lead, onDoubleClick, isDragging }: KanbanCardProps) {
   );
 }
 
-function SortableCard({ lead, onDoubleClick }: { lead: DbLead; onDoubleClick: () => void }) {
+function KanbanCardConfirm({ 
+  pendingMove, 
+  onConfirm, 
+  onCancel 
+}: { 
+  pendingMove: PendingMove;
+  onConfirm: (v?: number) => void;
+  onCancel: () => void; 
+}) {
+  const [value, setValue] = useState('');
+  const isPurchase = pendingMove.toStage === 'purchase';
+
+  return (
+    <div className="bg-surface border border-blue-500/30 rounded-lg p-3 shadow-[0_0_15px_rgba(59,130,246,0.15)] animate-in fade-in zoom-in-95 duration-200">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">Confirmar</span>
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-5 font-mono">
+          <span>{STAGE_LABELS[pendingMove.fromStage]}</span>
+          <ArrowRight className="w-3 h-3" />
+          <span className="text-white">{STAGE_LABELS[pendingMove.toStage]}</span>
+        </div>
+      </div>
+
+      {(pendingMove.toStage === 'qualified' || pendingMove.toStage === 'contacted') && (
+        <div className="flex items-start gap-2 mb-3 text-blue-400/80">
+          <Zap className="w-3 h-3 shrink-0 mt-0.5" />
+          <span className="text-[10px] leading-snug">Dispara CAPI automático</span>
+        </div>
+      )}
+
+      {isPurchase && (
+        <div className="mb-3 space-y-1.5">
+          <label className="text-[10px] text-slate-5 uppercase tracking-wider">Valor da Venda (R$)</label>
+          <Input 
+            type="number" 
+            placeholder="Ex: 1500" 
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            className="h-8 text-xs bg-slate-2 border-white/10"
+            autoFocus
+          />
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" className="flex-1 h-7 text-[10px]" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button 
+          size="sm" 
+          className="flex-1 h-7 text-[10px]" 
+          onClick={() => onConfirm(value ? Number(value) : undefined)}
+          disabled={isPurchase && !value}
+        >
+          Confirmar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SortableCard({ 
+  lead, 
+  onDoubleClick,
+  pendingMove,
+  onConfirm,
+  onCancel
+}: { 
+  lead: DbLead; 
+  onDoubleClick: () => void;
+  pendingMove?: PendingMove | null;
+  onConfirm?: (value?: number) => void;
+  onCancel?: () => void;
+}) {
   const {
     attributes,
     listeners,
@@ -108,9 +182,21 @@ function SortableCard({ lead, onDoubleClick }: { lead: DbLead; onDoubleClick: ()
     transition,
   };
 
+  const isPending = pendingMove?.leadId === lead.id;
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-manipulation">
-      <KanbanCard lead={lead} onDoubleClick={onDoubleClick} isDragging={isDragging} />
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...(isPending ? {} : attributes)} 
+      {...(isPending ? {} : listeners)} 
+      className={isPending ? "" : "touch-manipulation"}
+    >
+      {isPending && onConfirm && onCancel ? (
+        <KanbanCardConfirm pendingMove={pendingMove} onConfirm={onConfirm} onCancel={onCancel} />
+      ) : (
+        <KanbanCard lead={lead} onDoubleClick={onDoubleClick} isDragging={isDragging} />
+      )}
     </div>
   );
 }
@@ -155,7 +241,7 @@ interface PendingMove {
 
 interface KanbanBoardProps {
   leads: DbLead[];
-  onStageChange: (leadId: string, toStage: LeadStage) => Promise<boolean>;
+  onStageChange: (leadId: string, toStage: LeadStage, purchaseValue?: number) => Promise<boolean>;
   onRefresh: () => void;
 }
 
@@ -269,13 +355,13 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
     setBoardLeads(leads); // revert to original state
   }
 
-  async function confirmMove() {
+  async function confirmMove(purchaseValue?: number) {
     if (!pendingMove) return;
     const { leadId, toStage } = pendingMove;
     setPendingMove(null);
 
     toast.promise(
-      onStageChange(leadId, toStage),
+      onStageChange(leadId, toStage, purchaseValue),
       {
         loading: `Movendo para ${STAGE_LABELS[toStage]}...`,
         success: `✓ Lead movido para ${STAGE_LABELS[toStage]}`,
@@ -336,6 +422,9 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
                         key={lead.id}
                         lead={lead}
                         onDoubleClick={() => router.push(`/leads/${lead.id}`)}
+                        pendingMove={pendingMove?.leadId === lead.id ? pendingMove : null}
+                        onConfirm={confirmMove}
+                        onCancel={cancelMove}
                       />
                     ))
                   )}
@@ -355,55 +444,6 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
         ) : null}
       </DragOverlay>
 
-      {/* Confirmation Modal */}
-      {pendingMove && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-white/10 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="p-5 space-y-4">
-              <h3 className="text-lg font-semibold text-white tracking-tight">Confirmar Movimentação</h3>
-              
-              <div className="bg-slate-2 rounded-lg p-4 space-y-3 border border-white/5">
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">Lead</span>
-                  <span className="text-sm font-medium text-slate-9">{pendingMove.leadName}</span>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 flex flex-col">
-                    <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">De</span>
-                    <span className="text-[13px] text-slate-8 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[pendingMove.fromStage] }} />
-                      {STAGE_LABELS[pendingMove.fromStage]}
-                    </span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-6 mt-4 shrink-0" />
-                  <div className="flex-1 flex flex-col pl-3">
-                    <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">Para</span>
-                    <span className="text-[13px] font-medium text-white flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[pendingMove.toStage] }} />
-                      {STAGE_LABELS[pendingMove.toStage]}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {(pendingMove.toStage === 'qualified' || pendingMove.toStage === 'contacted') && (
-                <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400">
-                  <Zap className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p className="text-[12px] leading-relaxed">
-                    Esta ação irá disparar automaticamente um evento de <strong>{pendingMove.toStage === 'qualified' ? 'QualifiedLead' : 'Lead'}</strong> para o Meta CAPI (caso você seja admin).
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 bg-white/[0.02] border-t border-white/5 flex gap-3 justify-end">
-              <Button variant="secondary" onClick={cancelMove}>Cancelar</Button>
-              <Button onClick={confirmMove}>Confirmar</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </DndContext>
   );
 }

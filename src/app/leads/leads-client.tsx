@@ -84,11 +84,11 @@ export default function LeadsClient() {
     setCreating(false);
   }
 
-  async function handleKanbanStageChange(leadId: string, toStage: LeadStage): Promise<boolean> {
+  async function handleKanbanStageChange(leadId: string, toStage: LeadStage, purchaseValue?: number): Promise<boolean> {
     const res = await fetch(`/api/leads/${leadId}/stage`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to_stage: toStage }),
+      body: JSON.stringify({ to_stage: toStage, purchase_value: purchaseValue }),
     });
     if (res.ok) {
       fetchLeads();
@@ -379,7 +379,17 @@ export default function LeadsClient() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Telefone</label>
-                  <Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="+5511999999999" />
+                  <Input 
+                    value={newPhone} 
+                    onChange={e => {
+                      let val = e.target.value.replace(/\D/g, '');
+                      if (val.startsWith('55')) val = val.substring(2);
+                      if (val.length > 11) val = val.substring(0, 11);
+                      setNewPhone(val ? `+55${val}` : '');
+                    }} 
+                    placeholder="+5511999999999" 
+                    maxLength={14} // +55 + 11 digits
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Origem</label>

@@ -22,7 +22,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const { to_stage, reason } = body;
+  const { to_stage, reason, purchase_value } = body;
 
   if (!to_stage) {
     return NextResponse.json({ error: 'to_stage é obrigatório' }, { status: 400 });
@@ -58,6 +58,9 @@ export async function PATCH(
   // Special handling for purchase
   if (targetStage === 'purchase') {
     updates.closed_at = new Date().toISOString();
+    if (purchase_value !== undefined) {
+      updates.purchase_value = purchase_value;
+    }
   }
 
   const { error: updateError } = await admin
