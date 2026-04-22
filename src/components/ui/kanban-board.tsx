@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -168,7 +168,6 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   const [boardLeads, setBoardLeads] = useState<DbLead[]>(leads);
   
   // Sync when props change
-  import { useEffect } from 'react';
   useEffect(() => {
     setBoardLeads(leads);
   }, [leads]);
