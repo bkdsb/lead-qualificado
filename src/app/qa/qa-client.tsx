@@ -88,53 +88,52 @@ export default function QAClient({
         </Card>
       </div>
 
-      <AnimatePresence>
-        {(dqResult || fetchingDQ) && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            <Card className="border-blue-500/20 bg-[#0d1520] mt-6 relative overflow-hidden font-mono shadow-xl relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
-              <CardHeader className="p-3 border-b border-blue-500/20 flex flex-row items-center justify-between bg-blue-500/5">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1.5 ml-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/50 hover:bg-red-500 cursor-pointer transition-colors" onClick={() => setDqResult(null)} />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
-                  </div>
-                  <CardTitle className="text-blue-400 text-xs tracking-wider uppercase ml-3">Terminal · GraphAPI /dataset-quality</CardTitle>
-                </div>
-                {fetchingDQ && <RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="p-4 max-h-[400px] overflow-auto">
-                  {fetchingDQ ? (
-                    <div className="text-blue-300 text-xs flex flex-col gap-1 opacity-70">
-                      <span>&gt; conectando a graph.facebook.com...</span>
-                      <span>&gt; negociando certificado ssl...</span>
-                      <span className="animate-pulse">&gt; aguardando resposta_</span>
-                    </div>
-                  ) : dqResult?.error ? (
-                    <div className="text-red-400 text-xs">&gt; FATAL ERROR: {String(dqResult.error)}</div>
-                  ) : (
-                    <pre className="text-[11px] text-blue-300">
-                      <span className="text-blue-400 opacity-50 select-none mr-2">1</span><span className="text-blue-500">const</span> response = <br/>
-                      {JSON.stringify(dqResult?.data, null, 2).split('\n').map((line, i) => (
-                        <div key={i}><span className="text-blue-400 opacity-50 select-none mr-3 w-4 inline-block text-right">{i+2}</span>{line}</div>
-                      ))}
-                    </pre>
-                  )}
-                </div>
-                {!fetchingDQ && (
-                  <div className="p-2 border-t border-blue-500/20 bg-blue-500/5 flex justify-end">
-                    <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 text-[10px] uppercase tracking-widest" onClick={() => setDqResult(null)}>
-                      Limpar
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Card className="border-blue-500/20 bg-[#0d1520] mt-6 relative overflow-hidden font-mono shadow-xl relative">
+        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
+        <CardHeader className="p-3 border-b border-blue-500/20 flex flex-row items-center justify-between bg-blue-500/5">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5 ml-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500/50 hover:bg-red-500 cursor-pointer transition-colors" onClick={() => setDqResult(null)} />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
+            </div>
+            <CardTitle className="text-blue-400 text-xs tracking-wider uppercase ml-3">Terminal · GraphAPI /dataset-quality</CardTitle>
+          </div>
+          {fetchingDQ && <RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="p-4 max-h-[400px] overflow-auto">
+            {fetchingDQ ? (
+              <div className="text-blue-300 text-xs flex flex-col gap-1 opacity-70">
+                <span>&gt; conectando a graph.facebook.com...</span>
+                <span>&gt; negociando certificado ssl...</span>
+                <span className="animate-pulse">&gt; aguardando resposta_</span>
+              </div>
+            ) : dqResult?.error ? (
+              <div className="text-red-400 text-xs">&gt; FATAL ERROR: {String(dqResult.error)}</div>
+            ) : dqResult?.data ? (
+              <pre className="text-[11px] text-blue-300">
+                <span className="text-blue-400 opacity-50 select-none mr-2">1</span><span className="text-blue-500">const</span> response = <br/>
+                {JSON.stringify(dqResult?.data, null, 2).split('\n').map((line, i) => (
+                  <div key={i}><span className="text-blue-400 opacity-50 select-none mr-3 w-4 inline-block text-right">{i+2}</span>{line}</div>
+                ))}
+              </pre>
+            ) : (
+              <div className="text-blue-300/50 text-xs flex flex-col gap-1">
+                <span>&gt; sistema ocioso...</span>
+                <span>&gt; clique em 'Sync Meta' para consultar o Event Match Quality</span>
+              </div>
+            )}
+          </div>
+          {!fetchingDQ && dqResult && (
+            <div className="p-2 border-t border-blue-500/20 bg-blue-500/5 flex justify-end">
+              <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 text-[10px] uppercase tracking-widest" onClick={() => setDqResult(null)}>
+                Limpar
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="p-5 border-b border-white/[0.04]">
