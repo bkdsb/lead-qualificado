@@ -23,7 +23,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { STAGE_LABELS, STAGE_COLORS, SCORE_BAND_LABELS, STAGE_TRANSITIONS } from '@/lib/utils/constants';
 import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail, GripVertical, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Phone, Mail, ArrowRight, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -144,6 +145,13 @@ function DroppableColumn({ id, activeId, children }: { id: string; activeId: str
   );
 }
 
+interface PendingMove {
+  leadId: string;
+  leadName: string;
+  fromStage: LeadStage;
+  toStage: LeadStage;
+}
+
 interface KanbanBoardProps {
   leads: DbLead[];
   onStageChange: (leadId: string, toStage: LeadStage) => Promise<boolean>;
@@ -153,6 +161,7 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanBoardProps) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -201,11 +210,24 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
       return;
     }
 
+    setPendingMove({
+      leadId,
+      leadName: lead.name || 'Sem nome',
+      fromStage: lead.stage as LeadStage,
+      toStage: targetStage
+    });
+  }
+
+  async function confirmMove() {
+    if (!pendingMove) return;
+    const { leadId, toStage } = pendingMove;
+    setPendingMove(null);
+
     toast.promise(
-      onStageChange(leadId, targetStage),
+      onStageChange(leadId, toStage),
       {
-        loading: `Movendo para ${STAGE_LABELS[targetStage]}...`,
-        success: `✓ Lead movido para ${STAGE_LABELS[targetStage]}`,
+        loading: `Movendo para ${STAGE_LABELS[toStage]}...`,
+        success: `✓ Lead movido para ${STAGE_LABELS[toStage]}`,
         error: 'Falha ao mover lead',
       }
     );
@@ -280,6 +302,56 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Confirmation Modal */}
+      {pendingMove && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-white/10 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-5 space-y-4">
+              <h3 className="text-lg font-semibold text-white tracking-tight">Confirmar Movimentação</h3>
+              
+              <div className="bg-slate-2 rounded-lg p-4 space-y-3 border border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">Lead</span>
+                  <span className="text-sm font-medium text-slate-9">{pendingMove.leadName}</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 flex flex-col">
+                    <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">De</span>
+                    <span className="text-[13px] text-slate-8 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[pendingMove.fromStage] }} />
+                      {STAGE_LABELS[pendingMove.fromStage]}
+                    </span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-6 mt-4 shrink-0" />
+                  <div className="flex-1 flex flex-col pl-3">
+                    <span className="text-[11px] text-slate-5 font-medium uppercase tracking-wider mb-1">Para</span>
+                    <span className="text-[13px] font-medium text-white flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[pendingMove.toStage] }} />
+                      {STAGE_LABELS[pendingMove.toStage]}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {(pendingMove.toStage === 'qualified' || pendingMove.toStage === 'contacted') && (
+                <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400">
+                  <Zap className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p className="text-[12px] leading-relaxed">
+                    Esta ação irá disparar automaticamente um evento de <strong>{pendingMove.toStage === 'qualified' ? 'QualifiedLead' : 'Lead'}</strong> para o Meta CAPI (caso você seja admin).
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-white/[0.02] border-t border-white/5 flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setPendingMove(null)}>Cancelar</Button>
+              <Button onClick={confirmMove}>Confirmar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DndContext>
   );
 }
