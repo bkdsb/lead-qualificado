@@ -139,7 +139,7 @@ export default function LeadsClient() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-5 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-5 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

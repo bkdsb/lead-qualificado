@@ -90,7 +90,7 @@ export default function AuditClient({ logs }: { logs: AuditLog[] }) {
   const dispatchCount = logs.filter(l => l.action.includes('dispatch') || l.action.includes('send') || l.entity_type === 'meta_event').length;
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-6 animate-fade-in">
       <div className="space-y-1 mb-8">
         <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">Auditoria de Sistema</h1>
         <p className="text-sm text-slate-7">Rastro infraestrutural, operações manuais e chamadas de API.</p>

@@ -20,7 +20,7 @@ export default function EventsClient({ dispatches }: { dispatches: Array<Record<
   const failed = dispatches.filter(d => d.status === 'failed').length;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-5 animate-fade-in">
       {/* Header + inline stats */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>

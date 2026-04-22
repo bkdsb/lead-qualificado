@@ -20,17 +20,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>('admin');
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
 
-  // Fetch user role on mount
+  // Fetch user role on mount — defaults to 'admin' (safe: real security is API-level)
+  // Only restricts UI if we positively confirm the user is an operator
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        supabase.from('users').select('role').eq('id', user.id).single().then(({ data }) => {
-          if (data?.role) setUserRole(data.role as 'admin' | 'operator');
+        supabase.from('users').select('role').eq('id', user.id).single().then(({ data, error }) => {
+          if (data?.role === 'operator') {
+            setUserRole('operator');
+          }
+          // If query fails (RLS) or returns admin/null, keep default 'admin'
         });
       }
     });

@@ -144,7 +144,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

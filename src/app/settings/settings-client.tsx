@@ -80,7 +80,7 @@ export default function SettingsClient({
   const isTestMode = testModeEnabled?.value === true || testModeEnabled?.value === 'true';
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-white">Configurações</h1>
         <p className="text-[13px] text-slate-7 mt-0.5">Controles globais do sistema e conexão Meta.</p>
