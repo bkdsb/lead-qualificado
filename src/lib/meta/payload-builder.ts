@@ -279,7 +279,10 @@ export function buildMetaPayload(options: BuildPayloadOptions): PayloadBuildResu
   }
 
   // Evaluate match strength
-  const matchResult = evaluateMatchStrength(currentSignals);
+  const matchResult = evaluateMatchStrength(currentSignals, {
+    email: lead.email,
+    phone: lead.phone,
+  });
 
   // Add match-based warnings
   if (eventName === 'Purchase' && matchResult.strength === 'very_low') {

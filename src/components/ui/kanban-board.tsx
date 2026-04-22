@@ -27,10 +27,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Phone, Mail, ArrowRight, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const KANBAN_STAGES: LeadStage[] = ['new', 'contacted', 'conversing', 'proposal', 'qualified', 'purchase'];
+const KANBAN_STAGES: LeadStage[] = ['new', 'contacted', 'conversing', 'proposal', 'qualified', 'purchase', 'lost'];
 
 interface KanbanCardProps {
   lead: DbLead;
@@ -146,7 +146,7 @@ function KanbanCardConfirm({
           size="sm" 
           className="flex-1 h-7 text-[10px]" 
           onClick={() => onConfirm(value ? Number(value) : undefined)}
-          disabled={isPurchase && !value}
+          disabled={isPurchase && (!value || Number(value) <= 0)}
         >
           Confirmar
         </Button>
@@ -201,18 +201,6 @@ function SortableCard({
   );
 }
 
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
-
 function DroppableColumn({ id, activeId, children }: { id: string; activeId: string | null; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -253,10 +241,12 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   // Local state for optimistic UI during drag
   const [boardLeads, setBoardLeads] = useState<DbLead[]>(leads);
   
-  // Sync when props change
+  // Sync when props change (only when not actively dragging or confirming)
   useEffect(() => {
-    setBoardLeads(leads);
-  }, [leads]);
+    if (!activeId && !pendingMove) {
+      setBoardLeads(leads);
+    }
+  }, [leads, activeId, pendingMove]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

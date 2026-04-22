@@ -1,0 +1,25 @@
+# Handoff — Auditoria leads-meta-system
+**Projeto:** /Users/belegante/Documents/SITES/leads-meta-system
+**Achados:** AUDIT-FINDINGS.md (20 itens)
+
+## Status
+- Item #1: CORRIGIDO (match-strength.ts + 3 callers)
+- Item #2: CORRIGIDO (match calc movido para depois do auto-add email/phone)
+- Item #3: CORRIGIDO (coluna "lost" adicionada ao kanban)
+- Item #4: CORRIGIDO (default role mudado para 'operator')
+- Item #5: CORRIGIDO (padding mobile+test mode)
+- Item #6: CORRIGIDO (recentLeads tipado com RecentLead interface)
+- Item #7: CORRIGIDO (purchase value <= 0 bloqueado)
+- Item #8: CORRIGIDO (timeAgo extraída para src/lib/utils.ts)
+- Item #9: CORRIGIDO (CSV export limitado a 1000)
+- Item #10: CORRIGIDO (delete score event condicionado a isAdmin)
+- Item #11: CORRIGIDO (relative duplicado removido)
+- Item #12: MANTIDO livre (decisão do usuário)
+- Item #13: CORRIGIDO ("Detailed Context" → "Contexto Detalhado")
+- Item #14: CORRIGIDO (verifica PATCH antes de reload)
+- Item #15: CORRIGIDO (rejeita origins não autorizados com 403)
+- Item #16: NÃO APLICADO (rate limiting — depende de config Supabase)
+- Item #17: CORRIGIDO (proposal templates usam userName dinâmico)
+- Item #18: CORRIGIDO (useEffect sync só roda fora de drag/confirm)
+- Item #19: NÃO APLICADO (events pagination — requer redesign)
+- Item #20: NÃO NECESSÁRIO (charts já protegidos por loading state)

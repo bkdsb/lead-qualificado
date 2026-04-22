@@ -111,23 +111,9 @@ export async function POST(request: NextRequest) {
     if (signalRows.length > 0) {
       await admin.from('lead_identity_signals').insert(signalRows);
     }
-
-    // Recalculate match strength
-    const { data: allSignals } = await admin
-      .from('lead_identity_signals')
-      .select('*')
-      .eq('lead_id', lead.id);
-
-    if (allSignals) {
-      const matchResult = evaluateMatchStrength(allSignals);
-      await admin
-        .from('leads')
-        .update({ match_strength: matchResult.strength })
-        .eq('id', lead.id);
-    }
   }
 
-  // Auto-add email/phone as identity signals
+  // Auto-add email/phone as identity signals BEFORE match calculation
   if (email) {
     await admin.from('lead_identity_signals').upsert({
       lead_id: lead.id,
@@ -145,6 +131,23 @@ export async function POST(request: NextRequest) {
       source: 'manual',
       is_current: true,
     }, { onConflict: 'lead_id,signal_type,signal_value' });
+  }
+
+  // Recalculate match strength AFTER all signals (including email/phone) are inserted
+  const { data: allSignals } = await admin
+    .from('lead_identity_signals')
+    .select('*')
+    .eq('lead_id', lead.id);
+
+  if (allSignals && allSignals.length > 0) {
+    const matchResult = evaluateMatchStrength(allSignals, {
+      email: lead.email,
+      phone: lead.phone,
+    });
+    await admin
+      .from('leads')
+      .update({ match_strength: matchResult.strength })
+      .eq('id', lead.id);
   }
 
   // Record initial stage

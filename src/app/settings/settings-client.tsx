@@ -67,12 +67,17 @@ export default function SettingsClient({
     const current = settings.find(s => s.key === 'test_mode_enabled');
     const newValue = current?.value === true || current?.value === 'true' ? false : true;
     setSaving('test_mode_enabled');
-    await fetch('/api/settings', {
+    const res = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: 'test_mode_enabled', value: newValue }),
     });
     setSaving(null);
+    if (!res.ok) {
+      const { toast } = await import('sonner');
+      toast.error('Falha ao alterar modo de teste');
+      return;
+    }
     window.location.reload();
   }
 

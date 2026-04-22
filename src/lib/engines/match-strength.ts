@@ -20,10 +20,15 @@ export interface MatchStrengthResult {
  * - Strong: has phone + email + (external_id OR fbc/fbp OR ctwa_clid)
  */
 export function evaluateMatchStrength(
-  signals: DbLeadIdentitySignal[]
+  signals: DbLeadIdentitySignal[],
+  leadContact?: { email?: string | null; phone?: string | null }
 ): MatchStrengthResult {
   const currentSignals = signals.filter(s => s.is_current);
   const signalTypes = new Set(currentSignals.map(s => s.signal_type));
+
+  // Also consider email/phone stored directly on the lead record
+  if (leadContact?.email) signalTypes.add('email');
+  if (leadContact?.phone) signalTypes.add('phone');
 
   const hasEmail = signalTypes.has('email');
   const hasPhone = signalTypes.has('phone');

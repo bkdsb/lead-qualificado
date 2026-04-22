@@ -20,21 +20,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'operator'>('admin');
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
 
-  // Fetch user role on mount — defaults to 'admin' (safe: real security is API-level)
-  // Only restricts UI if we positively confirm the user is an operator
+  // Fetch user role on mount — defaults to 'operator' (safe: real security is API-level)
+  // Only promotes to admin when positively confirmed
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        supabase.from('users').select('role').eq('id', user.id).single().then(({ data, error }) => {
-          if (data?.role === 'operator') {
-            setUserRole('operator');
+        supabase.from('users').select('role').eq('id', user.id).single().then(({ data }) => {
+          if (data?.role === 'admin') {
+            setUserRole('admin');
           }
-          // If query fails (RLS) or returns admin/null, keep default 'admin'
         });
       }
     });
@@ -188,7 +187,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={cn("flex-1 min-w-0 flex flex-col", isTest ? "pt-6" : "", "pt-[52px] md:pt-0")}>
+      <main className={cn("flex-1 min-w-0 flex flex-col", "pt-[52px] md:pt-0", isTest && "pt-[76px] md:pt-6")}>
         {children}
       </main>
     </div>

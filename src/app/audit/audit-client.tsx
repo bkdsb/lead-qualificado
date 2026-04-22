@@ -186,7 +186,7 @@ export default function AuditClient({ logs }: { logs: AuditLog[] }) {
                             className="overflow-hidden"
                           >
                             <div className="mt-4 pt-4 border-t border-white/[0.04]">
-                              <div className="text-[10px] uppercase tracking-widest text-slate-6 mb-2">Detailed Context</div>
+                              <div className="text-[10px] uppercase tracking-widest text-slate-6 mb-2">Contexto Detalhado</div>
                               <pre className="p-3 bg-slate-1 rounded border border-white/[0.04] text-xs font-mono text-slate-8 overflow-x-auto">
                                 {JSON.stringify(log.details, null, 2)}
                               </pre>

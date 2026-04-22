@@ -13,18 +13,7 @@ import KanbanBoard from '@/components/ui/kanban-board';
 import { Search, Plus, Filter, ChevronLeft, ChevronRight, ArrowRight, LayoutGrid, List, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
+import { timeAgo } from '@/lib/utils';
 
 type ViewMode = 'table' | 'kanban';
 
@@ -98,12 +87,13 @@ export default function LeadsClient() {
   }
 
   async function handleExportCSV() {
-    const params = new URLSearchParams({ page: '1', limit: '10000' });
+    const params = new URLSearchParams({ page: '1', limit: '1000' });
     if (search) params.set('search', search);
     if (stageFilter) params.set('stage', stageFilter);
     const res = await fetch(`/api/leads?${params}`);
     const data = await res.json();
     const allLeads = data.leads || [];
+    const total = data.total || 0;
 
     if (allLeads.length === 0) {
       toast.error('Nenhum lead para exportar');
@@ -135,7 +125,7 @@ export default function LeadsClient() {
     a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${allLeads.length} leads exportados`);
+    toast.success(`${allLeads.length} leads exportados${total > 1000 ? ` (limitado a 1.000 de ${total})` : ''}`);
   }
 
   return (

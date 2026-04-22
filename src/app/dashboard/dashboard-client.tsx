@@ -7,9 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ArrowRight, TrendingUp, TrendingDown, Users, Target, ShieldCheck, Zap, AlertTriangle, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, timeAgo } from '@/lib/utils';
 import { STAGE_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
+import type { LeadStage } from '@/types/database';
 import Link from 'next/link';
+
+interface RecentLead {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  stage: string;
+  score: number;
+  created_at: string;
+}
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
 } from 'recharts';
@@ -21,7 +32,7 @@ export interface DashboardStats {
   totalLeads: number;
   readyForQualified: number;
   readyForPurchase: number;
-  recentLeads: Array<Record<string, unknown>>;
+  recentLeads: RecentLead[];
   lowPurchaseVolume: boolean;
 }
 
@@ -57,17 +68,6 @@ interface StatsData {
     newLeadsThisWeek: number;
     newLeadsLastWeek: number;
   };
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
 }
 
 function DeltaBadge({ value, suffix = '' }: { value: number; suffix?: string }) {
@@ -328,33 +328,33 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
           <div className="divide-y divide-white/[0.03]">
             {stats.recentLeads.map((l) => (
               <Link
-                key={l.id as string}
+                key={l.id}
                 href={`/leads/${l.id}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-slate-2/50 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-md bg-slate-3 flex items-center justify-center text-[11px] font-bold text-slate-7 uppercase shrink-0">
-                    {(l.name as string)?.charAt(0) || '?'}
+                    {l.name?.charAt(0) || '?'}
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-slate-9 truncate group-hover:text-white transition-colors">
-                      {l.name as string || 'Sem nome'}
+                      {l.name || 'Sem nome'}
                     </div>
-                    <div className="text-[11px] text-slate-6 truncate">{l.email as string || l.phone as string || '—'}</div>
+                    <div className="text-[11px] text-slate-6 truncate">{l.email || l.phone || '—'}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-3">
                   <Badge
                     style={{
-                      backgroundColor: `${STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS]}12`,
-                      color: STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS],
-                      borderColor: `${STAGE_COLORS[l.stage as keyof typeof STAGE_COLORS]}25`,
+                      backgroundColor: `${STAGE_COLORS[l.stage as LeadStage]}12`,
+                      color: STAGE_COLORS[l.stage as LeadStage],
+                      borderColor: `${STAGE_COLORS[l.stage as LeadStage]}25`,
                     }}
                     className="border hidden sm:inline-flex"
                   >
-                    {STAGE_LABELS[l.stage as keyof typeof STAGE_LABELS]}
+                    {STAGE_LABELS[l.stage as LeadStage]}
                   </Badge>
-                  <span className="text-[11px] text-slate-6 font-mono w-8 text-right">{timeAgo(l.created_at as string)}</span>
+                  <span className="text-[11px] text-slate-6 font-mono w-8 text-right">{timeAgo(l.created_at)}</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </Link>

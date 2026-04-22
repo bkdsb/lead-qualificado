@@ -88,7 +88,7 @@ export default function QAClient({
         </Card>
       </div>
 
-      <Card className="border-blue-500/20 bg-[#0d1520] mt-6 relative overflow-hidden font-mono shadow-xl relative">
+      <Card className="border-blue-500/20 bg-[#0d1520] mt-6 relative overflow-hidden font-mono shadow-xl">
         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
         <CardHeader className="p-3 border-b border-blue-500/20 flex flex-row items-center justify-between bg-blue-500/5">
           <div className="flex items-center gap-2">

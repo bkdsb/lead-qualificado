@@ -19,10 +19,16 @@ export async function POST(request: Request) {
   // Restringindo a segurança: Apenas aceitar dados que vêm do seu site oficial (ou ambiente local de testes)
   const incomingOrigin = request.headers.get('origin') || '';
   const isAllowedOrigin = incomingOrigin === 'https://belegante.co' || incomingOrigin.includes('localhost');
-  const origin = isAllowedOrigin ? incomingOrigin : 'https://belegante.co';
+
+  if (!isAllowedOrigin) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    );
+  }
 
   const corsHeaders = {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': incomingOrigin,
     'Access-Control-Allow-Methods': 'OPTIONS, POST',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };

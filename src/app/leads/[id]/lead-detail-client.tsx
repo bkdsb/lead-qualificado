@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { STAGE_LABELS, SCORE_BAND_LABELS, MATCH_STRENGTH_LABELS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES, SERVICE_LABELS, SERVICE_COLORS, SERVICE_PACKAGES, PROPOSAL_TEMPLATES } from '@/lib/utils/constants';
-import type { ServiceInterest } from '@/lib/utils/constants';
+import { STAGE_LABELS, SCORE_BAND_LABELS, MATCH_STRENGTH_LABELS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES, SERVICE_PACKAGES, PROPOSAL_TEMPLATES } from '@/lib/utils/constants';
 import type { DbLead, DbLeadIdentitySignal, DbLeadNote, DbLeadStageHistory, DbLeadScoreEvent, DbMetaEventDispatch, LeadStage, ScoreBand, MatchStrength } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,13 +30,12 @@ interface LeadData {
   };
 }
 
-export default function LeadDetailClient({ leadId, userRole = 'operator' }: { leadId: string; userRole?: 'admin' | 'operator' }) {
+export default function LeadDetailClient({ leadId, userRole = 'operator', userName = 'Usuário' }: { leadId: string; userRole?: 'admin' | 'operator'; userName?: string }) {
   const isAdmin = userRole === 'admin';
   const router = useRouter();
   const [data, setData] = useState<LeadData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'proposals' | 'technical'>('timeline');
-  const [selectedService, setSelectedService] = useState<ServiceInterest | ''>('');
   const [showStageMenu, setShowStageMenu] = useState(false);
   const [showEventMenu, setShowEventMenu] = useState(false);
 
@@ -377,7 +375,9 @@ export default function LeadDetailClient({ leadId, userRole = 'operator' }: { le
                               </span>
                               <span className="text-slate-7 ml-1.5">{(item.data as DbLeadScoreEvent).note || (item.data as DbLeadScoreEvent).event_type}</span>
                             </div>
-                            <button className="text-slate-7 hover:text-red-400 transition-colors cursor-pointer" onClick={() => handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id)}>✕</button>
+                            {isAdmin && (
+                              <button className="text-slate-7 hover:text-red-400 transition-colors cursor-pointer" onClick={() => handleDeleteScoreEvent((item.data as DbLeadScoreEvent).id)}>✕</button>
+                            )}
                           </div>
                         )}
 
@@ -488,91 +488,65 @@ export default function LeadDetailClient({ leadId, userRole = 'operator' }: { le
 
                 {/* Proposals Tab */}
                 {activeTab === 'proposals' && (
-                  <div className="space-y-6">
-                    {/* Service Interest Selector */}
+                  <div className="space-y-8">
+                    {/* Price Reference — Clean table */}
                     <div>
-                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Interesse do Lead</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(SERVICE_LABELS).map(([key, label]) => (
-                          <button
-                            key={key}
-                            onClick={() => setSelectedService(selectedService === key ? '' : key as ServiceInterest)}
-                            className={cn(
-                              "px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-all cursor-pointer",
-                              selectedService === key
-                                ? "border-white/20 text-white"
-                                : "border-white/[0.04] text-slate-7 hover:text-slate-9 hover:border-white/[0.08]"
-                            )}
-                            style={selectedService === key ? {
-                              backgroundColor: `${SERVICE_COLORS[key as ServiceInterest]}15`,
-                              borderColor: `${SERVICE_COLORS[key as ServiceInterest]}40`,
-                              color: SERVICE_COLORS[key as ServiceInterest],
-                            } : undefined}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Packages — Referência rápida (valor sempre editável) */}
-                    <div>
-                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Referência de Pacotes</h4>
-                      <div className="space-y-2">
-                        {SERVICE_PACKAGES
-                          .filter(p => !selectedService || p.service === selectedService)
-                          .map(pkg => (
-                            <div key={pkg.id} className="p-3 bg-slate-2 border border-white/[0.04] rounded-lg hover:border-white/[0.08] transition-colors">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-[13px] font-medium text-white">{pkg.name}</div>
-                                  <div className="text-[10px] text-slate-6 mt-0.5">{pkg.description}</div>
-                                  <div className="flex flex-wrap gap-1 mt-1.5">
-                                    {pkg.includes.slice(0, 3).map((item, i) => (
-                                      <span key={i} className="text-[9px] text-slate-7 bg-slate-3 px-1.5 py-0.5 rounded">✓ {item}</span>
-                                    ))}
-                                    {pkg.includes.length > 3 && <span className="text-[9px] text-slate-6">+{pkg.includes.length - 3}</span>}
-                                  </div>
-                                </div>
-                                <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                                  <div className="text-sm font-bold font-mono text-green-400">
+                      <h4 className="text-[11px] font-semibold text-slate-7 uppercase tracking-widest mb-3">Pacotes</h4>
+                      <div className="border border-white/[0.06] rounded-lg overflow-hidden">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-white/[0.06] bg-slate-2/40">
+                              <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-widest text-slate-6">Serviço</th>
+                              <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-widest text-slate-6 text-right w-24">Pgto</th>
+                              <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-widest text-slate-6 text-right w-28">Valor</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.04]">
+                            {SERVICE_PACKAGES.map(pkg => (
+                              <tr key={pkg.id} className="group hover:bg-white/[0.02] transition-colors">
+                                <td className="px-3 py-2.5">
+                                  <div className="text-[13px] text-slate-9">{pkg.name}</div>
+                                </td>
+                                <td className="px-3 py-2.5 text-right">
+                                  <span className="text-[11px] text-slate-6">{pkg.payment}</span>
+                                </td>
+                                <td className="px-3 py-2.5 text-right">
+                                  <span className="font-mono font-bold text-[13px] text-green-400">
                                     R${pkg.price.toLocaleString('pt-BR')}
-                                  </div>
-                                  <button
-                                    onClick={() => { setPurchaseValue(pkg.price); toast.success(`Valor preenchido: R$${pkg.price}`); }}
-                                    className="text-[9px] font-medium text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
-                                  >
-                                    Usar valor
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
-                    {/* Proposal Templates — Copy-Paste */}
+                    {/* Message Templates — Collapsible */}
                     <div>
-                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Mensagens Prontas</h4>
-                      <div className="space-y-2">
+                      <h4 className="text-[11px] font-semibold text-slate-7 uppercase tracking-widest mb-3">Mensagens</h4>
+                      <div className="space-y-1.5">
                         {Object.entries(PROPOSAL_TEMPLATES).map(([key, tpl]) => {
-                          const message = tpl.message(lead.name || 'Cliente', 'Bruno');
+                          const message = tpl.message(lead.name || 'Cliente', userName);
                           return (
-                            <div key={key} className="p-3 bg-slate-2 border border-white/[0.04] rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[12px] font-medium text-slate-8">{tpl.title}</span>
+                            <details key={key} className="group border border-white/[0.06] rounded-lg overflow-hidden">
+                              <summary className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors select-none">
+                                <span className="text-[13px] font-medium text-slate-9">{tpl.title}</span>
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.preventDefault();
                                     navigator.clipboard.writeText(message);
-                                    toast.success('Mensagem copiada!');
+                                    toast.success('Copiado');
                                   }}
-                                  className="text-[10px] font-medium text-blue-400 hover:text-blue-300 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                                  className="text-[11px] font-medium text-slate-7 hover:text-white px-2 py-0.5 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
                                 >
                                   Copiar
                                 </button>
+                              </summary>
+                              <div className="px-3 pb-3 border-t border-white/[0.04]">
+                                <pre className="text-[11px] text-slate-7 whitespace-pre-wrap leading-relaxed font-sans pt-3">{message}</pre>
                               </div>
-                              <pre className="text-[11px] text-slate-7 whitespace-pre-wrap leading-relaxed font-sans">{message}</pre>
-                            </div>
+                            </details>
                           );
                         })}
                       </div>

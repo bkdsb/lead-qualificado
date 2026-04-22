@@ -35,8 +35,11 @@ export async function GET(
     supabase.from('meta_event_dispatches').select('*').eq('lead_id', id).order('dispatched_at', { ascending: false }),
   ]);
 
-  // Evaluate current match strength
-  const matchResult = evaluateMatchStrength(signals.data || []);
+  // Evaluate current match strength (include lead's own email/phone)
+  const matchResult = evaluateMatchStrength(signals.data || [], {
+    email: lead.email,
+    phone: lead.phone,
+  });
 
   return NextResponse.json({
     lead,
