@@ -243,7 +243,7 @@ export default function LeadDetailClient({ leadId, userRole = 'operator' }: { le
       </div>
 
       {/* Main Ledger Layout */}
-      <div className="flex-1 p-4 md:p-6 w-full grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+      <div className="flex-1 p-4 md:p-6 lg:p-8 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
         
         {/* Left Column: Metrics & Identity */}
         <div className="space-y-6">
