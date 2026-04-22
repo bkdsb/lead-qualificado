@@ -44,8 +44,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const visibleNavItems = NAV_ITEMS.filter(item => !item.adminOnly || userRole === 'admin');
-
   async function handleLogout() {
     const supabase = createClient();
     sessionStorage.removeItem('user_role');
@@ -73,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-1 text-slate-9 overflow-x-hidden">
+    <div className="flex min-h-screen w-full bg-slate-1 text-slate-9">
       {isTest && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-500 text-[11px] font-medium tracking-widest uppercase py-1 text-center backdrop-blur-md">
           ● Modo Teste Ativo
@@ -115,17 +113,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div>
             <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
             <div className="space-y-0.5">
-              {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
+              {NAV_ITEMS.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
             </div>
           </div>
-          {userRole === 'admin' && (
-            <div>
-              <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
-              <div className="space-y-0.5">
-                {visibleNavItems.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
-              </div>
+          <div className={userRole === 'admin' ? 'block' : 'hidden'}>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
+            <div className="space-y-0.5">
+              {NAV_ITEMS.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
             </div>
-          )}
+          </div>
         </nav>
 
         <div className="p-3 border-t border-white/[0.04]">
@@ -163,17 +159,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div>
                 <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
                 <div className="space-y-0.5">
-                  {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
+                  {NAV_ITEMS.filter(i => !i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
                 </div>
               </div>
-              {userRole === 'admin' && (
-                <div>
-                  <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
-                  <div className="space-y-0.5">
-                    {visibleNavItems.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
-                  </div>
+              <div className={userRole === 'admin' ? 'block' : 'hidden'}>
+                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
+                <div className="space-y-0.5">
+                  {NAV_ITEMS.filter(i => i.adminOnly).map(item => <NavLink key={item.href} item={item} />)}
                 </div>
-              )}
+              </div>
             </nav>
 
             <div className="p-3 border-t border-white/[0.04]">
