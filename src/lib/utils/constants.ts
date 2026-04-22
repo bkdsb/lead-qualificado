@@ -38,7 +38,7 @@ export const SCORE_BANDS: { band: ScoreBand; min: number; max: number }[] = [
 export const STAGE_LABELS: Record<LeadStage, string> = {
   new: 'Novo',
   contacted: 'Contatado',
-  conversing: 'Conversando',
+  conversing: 'Agendamento',
   proposal: 'Proposta',
   qualified: 'Qualificado',
   purchase: 'Comprou',

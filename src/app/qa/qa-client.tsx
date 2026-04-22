@@ -49,8 +49,8 @@ export default function QAClient({
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-mono tracking-tighter text-white font-bold">{dispatches.length}</div>
             <div className="text-xs text-slate-6 mt-1 flex items-center gap-2">
-              <span className="text-slate-8">{prodDispatches.length} Prod</span>
-              <span className="text-slate-8">{testDispatches.length} Test</span>
+              <span className="text-slate-8">{prodDispatches.length} Produção</span>
+              <span className="text-slate-8">{testDispatches.length} Teste</span>
             </div>
           </CardContent>
         </Card>
@@ -71,9 +71,9 @@ export default function QAClient({
 
         <Card>
           <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between space-y-0">
-            <Tooltip content="Mede a qualidade dos dados enviados (EMQ). Acima de 6.0 é razoável.">
+            <Tooltip content="Qualidade de Correspondência de Eventos (EMQ). Avalia de 0 a 10 o quão bem o Meta consegue associar o lead a um usuário. Acima de 6.0 é ideal.">
               <span className="uppercase text-[11px] font-semibold tracking-widest text-slate-8 cursor-help border-b border-dashed border-slate-7">
-                Event Match Quality
+                Event Match Quality (EMQ)
               </span>
             </Tooltip>
             <ShieldCheck className="w-3.5 h-3.5 text-slate-7" />

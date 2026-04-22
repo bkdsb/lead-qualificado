@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip } from '@/components/ui/tooltip';
 import { ArrowRight, TrendingUp, TrendingDown, Users, Target, ShieldCheck, Zap, AlertTriangle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STAGE_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
@@ -114,14 +115,17 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
       label: "Vendas", value: stats.purchases7d, icon: TrendingUp,
       accent: "text-green-400", sub: "Últimos 7 dias",
       delta: chartData?.deltas.purchases,
+      tooltip: "Leads que chegaram na coluna 'Comprou'. Dispara o evento de Purchase no Meta.",
     },
     {
       label: "Conversão", value: `${stats.conversionRate}%`, icon: Target,
       accent: "text-slate-9", sub: "Qualificado → Venda",
+      tooltip: "Porcentagem de leads qualificados que efetivamente fecharam a compra.",
     },
     {
       label: "Qualificados", value: stats.qualifieds7d, icon: ShieldCheck,
       accent: "text-slate-9", sub: "Últimos 7 dias",
+      tooltip: "Leads marcados como qualificados. Dispara o evento QualifiedLead no Meta.",
     },
     {
       label: "Total Leads", value: stats.totalLeads, icon: Users,
@@ -131,10 +135,12 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
     {
       label: "P/ Qualificar", value: stats.readyForQualified, icon: Zap,
       accent: "text-blue-400", sub: "Score ≥ 50",
+      tooltip: "Leads em conversação que atingiram um score morno/quente. Sugestão: movê-os para Qualificado.",
     },
     {
       label: "P/ Fechar", value: stats.readyForPurchase, icon: TrendingUp,
       accent: "text-green-400", sub: "Score ≥ 80",
+      tooltip: "Leads altamente engajados. Foque neles para o fechamento.",
     },
   ];
 
@@ -169,7 +175,13 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
           <Card key={i} className="card-hover cursor-default">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-medium uppercase tracking-widest text-slate-7">{m.label}</span>
+                {m.tooltip ? (
+                  <Tooltip content={m.tooltip}>
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-slate-7 border-b border-dashed border-slate-7 cursor-help">{m.label}</span>
+                  </Tooltip>
+                ) : (
+                  <span className="text-[11px] font-medium uppercase tracking-widest text-slate-7">{m.label}</span>
+                )}
                 <m.icon className="w-3.5 h-3.5 text-slate-6" />
               </div>
               <div className="flex items-end gap-2">
@@ -197,7 +209,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
               </div>
             ) : chartData?.weeklyData ? (
               <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={chartData.weeklyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData.weeklyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradVendas" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
@@ -233,7 +245,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
               <Skeleton className="h-[180px] w-full rounded-lg" />
             ) : chartData?.funnelData ? (
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData.funnelData.filter(f => f.key !== 'lost')} margin={{ top: 5, right: 5, left: -20, bottom: 0 }} layout="vertical">
+                <BarChart data={chartData.funnelData.filter(f => f.key !== 'lost')} margin={{ top: 5, right: 20, left: 10, bottom: 0 }} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10, fill: '#53534e' }} tickLine={false} axisLine={false} />
                   <YAxis dataKey="stage" type="category" tick={{ fontSize: 10, fill: '#706e67' }} tickLine={false} axisLine={false} width={80} />

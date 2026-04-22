@@ -8,7 +8,7 @@ import type { LeadStage, ActionSource } from '@/types/database';
  * Purchase is excluded — always requires manual confirmation.
  */
 const AUTO_DISPATCH_MAP: Partial<Record<LeadStage, string>> = {
-  contacted: 'Lead',
+  conversing: 'Schedule',
   qualified: 'QualifiedLead',
   purchase: 'Purchase',
 };
@@ -17,7 +17,7 @@ const AUTO_DISPATCH_MAP: Partial<Record<LeadStage, string>> = {
  * Attempt auto-dispatch of a Meta CAPI event when a lead changes stage.
  * 
  * Rules:
- * - Only fires for mapped stages (contacted → Lead, qualified → QualifiedLead)
+ * - Only fires for mapped stages (conversing → Schedule, qualified → QualifiedLead, purchase → Purchase)
  * - Purchase auto-dispatch will include the lead.purchase_value
  * - Respects idempotency — won't re-send if already sent
  * - Runs as fire-and-forget — never blocks the stage change response

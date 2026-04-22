@@ -117,10 +117,10 @@ function KanbanCardConfirm({
         </div>
       </div>
 
-      {(pendingMove.toStage === 'qualified' || pendingMove.toStage === 'contacted') && (
+      {(pendingMove.toStage === 'qualified' || pendingMove.toStage === 'conversing') && (
         <div className="flex items-start gap-2 mb-3 text-blue-400/80">
           <Zap className="w-3 h-3 shrink-0 mt-0.5" />
-          <span className="text-[10px] leading-snug">Dispara CAPI automático</span>
+          <span className="text-[10px] leading-snug">Dispara evento de otimização no Meta</span>
         </div>
       )}
 
