@@ -26,7 +26,7 @@ import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Phone, Mail, ArrowRight, Zap } from 'lucide-react';
+import { Phone, Mail, ArrowRight, Zap, Loader2 } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -155,16 +155,34 @@ function KanbanCardConfirm({
   );
 }
 
-function SortableCard({ 
-  lead, 
+function KanbanCardLoading({ lead, toStage }: { lead: DbLead; toStage: LeadStage }) {
+  return (
+    <div className="bg-surface border border-blue-500/20 rounded-lg p-3 animate-pulse">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="font-medium text-[13px] text-slate-9 truncate leading-tight">
+          {lead.name || 'Sem nome'}
+        </div>
+        <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+      </div>
+      <div className="flex items-center gap-1.5 text-[10px] text-blue-400/70 font-mono">
+        <span>Movendo para {STAGE_LABELS[toStage]}…</span>
+      </div>
+    </div>
+  );
+}
+
+function SortableCard({
+  lead,
   onDoubleClick,
   pendingMove,
+  movingToStage,
   onConfirm,
   onCancel
-}: { 
-  lead: DbLead; 
+}: {
+  lead: DbLead;
   onDoubleClick: () => void;
   pendingMove?: PendingMove | null;
+  movingToStage?: LeadStage | null;
   onConfirm?: (value?: number) => void;
   onCancel?: () => void;
 }) {
@@ -183,17 +201,21 @@ function SortableCard({
   };
 
   const isPending = pendingMove?.leadId === lead.id;
+  const isMoving = !!movingToStage;
+  const isInteractive = !isPending && !isMoving;
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      {...(isPending ? {} : attributes)} 
-      {...(isPending ? {} : listeners)} 
-      className={isPending ? "" : "touch-manipulation"}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...(isInteractive ? attributes : {})}
+      {...(isInteractive ? listeners : {})}
+      className={isInteractive ? "touch-manipulation" : ""}
     >
       {isPending && onConfirm && onCancel ? (
         <KanbanCardConfirm pendingMove={pendingMove} onConfirm={onConfirm} onCancel={onCancel} />
+      ) : isMoving ? (
+        <KanbanCardLoading lead={lead} toStage={movingToStage} />
       ) : (
         <KanbanCard lead={lead} onDoubleClick={onDoubleClick} isDragging={isDragging} />
       )}
@@ -237,16 +259,17 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
-  
+  const [movingLead, setMovingLead] = useState<{ id: string; toStage: LeadStage } | null>(null);
+
   // Local state for optimistic UI during drag
   const [boardLeads, setBoardLeads] = useState<DbLead[]>(leads);
-  
-  // Sync when props change (only when not actively dragging or confirming)
+
+  // Sync when props change (only when not actively dragging, confirming, or moving)
   useEffect(() => {
-    if (!activeId && !pendingMove) {
+    if (!activeId && !pendingMove && !movingLead) {
       setBoardLeads(leads);
     }
-  }, [leads, activeId, pendingMove]);
+  }, [leads, activeId, pendingMove, movingLead]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -348,16 +371,25 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   async function confirmMove(purchaseValue?: number) {
     if (!pendingMove) return;
     const { leadId, toStage } = pendingMove;
+
+    // Switch from confirm UI to loading UI — card stays in target column
+    setMovingLead({ id: leadId, toStage });
     setPendingMove(null);
 
-    toast.promise(
-      onStageChange(leadId, toStage, purchaseValue),
-      {
-        loading: `Movendo para ${STAGE_LABELS[toStage]}...`,
-        success: `✓ Lead movido para ${STAGE_LABELS[toStage]}`,
-        error: 'Falha ao mover lead',
+    try {
+      const ok = await onStageChange(leadId, toStage, purchaseValue);
+      if (ok) {
+        toast.success(`✓ Lead movido para ${STAGE_LABELS[toStage]}`);
+      } else {
+        toast.error('Falha ao mover lead');
+        setBoardLeads(leads);
       }
-    );
+    } catch {
+      toast.error('Falha ao mover lead');
+      setBoardLeads(leads);
+    } finally {
+      setMovingLead(null);
+    }
   }
 
   return (
@@ -413,6 +445,7 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
                         lead={lead}
                         onDoubleClick={() => router.push(`/leads/${lead.id}`)}
                         pendingMove={pendingMove?.leadId === lead.id ? pendingMove : null}
+                        movingToStage={movingLead?.id === lead.id ? movingLead.toStage : null}
                         onConfirm={confirmMove}
                         onCancel={cancelMove}
                       />
