@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   useDroppable,
   type DragStartEvent,
+  type DragOverEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -162,6 +163,15 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  
+  // Local state for optimistic UI during drag
+  const [boardLeads, setBoardLeads] = useState<DbLead[]>(leads);
+  
+  // Sync when props change
+  import { useEffect } from 'react';
+  useEffect(() => {
+    setBoardLeads(leads);
+  }, [leads]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -169,53 +179,95 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   );
 
   const columnLeads = useCallback((stage: LeadStage) => {
-    return leads.filter(l => l.stage === stage);
-  }, [leads]);
+    return boardLeads.filter(l => l.stage === stage);
+  }, [boardLeads]);
 
-  const activeLead = activeId ? leads.find(l => l.id === activeId) : null;
+  const activeLead = activeId ? boardLeads.find(l => l.id === activeId) : null;
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null);
+  function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over) return;
 
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    if (activeId === overId) return;
+
+    setBoardLeads(prev => {
+      const activeIndex = prev.findIndex(l => l.id === activeId);
+      if (activeIndex === -1) return prev;
+
+      let overStage: LeadStage | null = null;
+      if (KANBAN_STAGES.includes(overId as LeadStage)) {
+        overStage = overId as LeadStage;
+      } else {
+        const targetLead = prev.find(l => l.id === overId);
+        if (targetLead) overStage = targetLead.stage as LeadStage;
+      }
+
+      if (!overStage || prev[activeIndex].stage === overStage) {
+        return prev;
+      }
+
+      // Optimistic move
+      const newLeads = [...prev];
+      newLeads[activeIndex] = { ...newLeads[activeIndex], stage: overStage };
+      return newLeads;
+    });
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const { active, over } = event;
+
+    if (!over) {
+      setBoardLeads(leads); // revert
+      return;
+    }
+
     const leadId = active.id as string;
-    const lead = leads.find(l => l.id === leadId);
-    if (!lead) return;
+    // Get original stage from props
+    const originalLead = leads.find(l => l.id === leadId);
+    if (!originalLead) return;
 
-    // The over.id could be a lead or a column droppable
     let targetStage: LeadStage | null = null;
-
-    // Check if dropped on a column container
     if (KANBAN_STAGES.includes(over.id as LeadStage)) {
       targetStage = over.id as LeadStage;
     } else {
-      // Dropped on another lead card — find which column it's in
-      const targetLead = leads.find(l => l.id === over.id);
+      const targetLead = boardLeads.find(l => l.id === over.id);
       if (targetLead) {
         targetStage = targetLead.stage as LeadStage;
       }
     }
 
-    if (!targetStage || targetStage === lead.stage) return;
+    if (!targetStage || targetStage === originalLead.stage) {
+      setBoardLeads(leads); // revert
+      return;
+    }
 
-    // Validate transition
-    const allowed = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
+    // Validate transition using original stage
+    const allowed = STAGE_TRANSITIONS[originalLead.stage as LeadStage] || [];
     if (!allowed.includes(targetStage)) {
-      toast.error(`Transição inválida: ${STAGE_LABELS[lead.stage as LeadStage]} → ${STAGE_LABELS[targetStage]}`);
+      toast.error(`Transição inválida: ${STAGE_LABELS[originalLead.stage as LeadStage]} → ${STAGE_LABELS[targetStage]}`);
+      setBoardLeads(leads); // revert
       return;
     }
 
     setPendingMove({
       leadId,
-      leadName: lead.name || 'Sem nome',
-      fromStage: lead.stage as LeadStage,
+      leadName: originalLead.name || 'Sem nome',
+      fromStage: originalLead.stage as LeadStage,
       toStage: targetStage
     });
+  }
+
+  function cancelMove() {
+    setPendingMove(null);
+    setBoardLeads(leads); // revert to original state
   }
 
   async function confirmMove() {
@@ -236,8 +288,9 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-3 overflow-x-auto pb-4 min-h-[calc(100vh-200px)]">
@@ -346,7 +399,7 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
             </div>
             
             <div className="p-4 bg-white/[0.02] border-t border-white/5 flex gap-3 justify-end">
-              <Button variant="secondary" onClick={() => setPendingMove(null)}>Cancelar</Button>
+              <Button variant="secondary" onClick={cancelMove}>Cancelar</Button>
               <Button onClick={confirmMove}>Confirmar</Button>
             </div>
           </div>
