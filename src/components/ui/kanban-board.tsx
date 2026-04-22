@@ -31,19 +31,19 @@ const KANBAN_STAGES: LeadStage[] = ['new', 'contacted', 'conversing', 'proposal'
 
 interface KanbanCardProps {
   lead: DbLead;
-  onClick: () => void;
+  onDoubleClick: () => void;
   isDragging?: boolean;
 }
 
-function KanbanCard({ lead, onClick, isDragging }: KanbanCardProps) {
+function KanbanCard({ lead, onDoubleClick, isDragging }: KanbanCardProps) {
   return (
     <div
       className={cn(
-        "group bg-surface border border-white/[0.06] rounded-lg p-3 cursor-pointer",
+        "bg-surface border border-white/[0.06] rounded-lg p-3 cursor-grab active:cursor-grabbing",
         "hover:border-white/[0.12] hover:bg-[#151514] transition-all duration-150",
         isDragging && "opacity-50 scale-[0.98] ring-2 ring-white/10"
       )}
-      onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="font-medium text-[13px] text-slate-9 truncate leading-tight">
@@ -91,7 +91,7 @@ function KanbanCard({ lead, onClick, isDragging }: KanbanCardProps) {
   );
 }
 
-function SortableCard({ lead, onClick }: { lead: DbLead; onClick: () => void }) {
+function SortableCard({ lead, onDoubleClick }: { lead: DbLead; onDoubleClick: () => void }) {
   const {
     attributes,
     listeners,
@@ -107,15 +107,8 @@ function SortableCard({ lead, onClick }: { lead: DbLead; onClick: () => void }) 
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group/sortable">
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10"
-      >
-        <GripVertical className="w-3 h-3 text-slate-6" />
-      </div>
-      <KanbanCard lead={lead} onClick={onClick} isDragging={isDragging} />
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-manipulation">
+      <KanbanCard lead={lead} onDoubleClick={onDoubleClick} isDragging={isDragging} />
     </div>
   );
 }
@@ -268,7 +261,7 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
                       <SortableCard
                         key={lead.id}
                         lead={lead}
-                        onClick={() => router.push(`/leads/${lead.id}`)}
+                        onDoubleClick={() => router.push(`/leads/${lead.id}`)}
                       />
                     ))
                   )}
@@ -283,7 +276,7 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
       <DragOverlay>
         {activeLead ? (
           <div className="w-[244px]">
-            <KanbanCard lead={activeLead} onClick={() => {}} isDragging />
+            <KanbanCard lead={activeLead} onDoubleClick={() => {}} isDragging />
           </div>
         ) : null}
       </DragOverlay>
