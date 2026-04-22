@@ -1,0 +1,292 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { STAGE_LABELS, STAGE_COLORS, SCORE_BAND_LABELS, STAGE_TRANSITIONS } from '@/lib/utils/constants';
+import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
+import { Badge } from '@/components/ui/badge';
+import { Phone, Mail, GripVertical, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+
+const KANBAN_STAGES: LeadStage[] = ['new', 'contacted', 'conversing', 'proposal', 'qualified', 'purchase'];
+
+interface KanbanCardProps {
+  lead: DbLead;
+  onClick: () => void;
+  isDragging?: boolean;
+}
+
+function KanbanCard({ lead, onClick, isDragging }: KanbanCardProps) {
+  return (
+    <div
+      className={cn(
+        "group bg-surface border border-white/[0.06] rounded-lg p-3 cursor-pointer",
+        "hover:border-white/[0.12] hover:bg-[#151514] transition-all duration-150",
+        isDragging && "opacity-50 scale-[0.98] ring-2 ring-white/10"
+      )}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="font-medium text-[13px] text-slate-9 truncate leading-tight">
+          {lead.name || 'Sem nome'}
+        </div>
+        <span className="text-[10px] font-mono text-slate-6 shrink-0 mt-0.5">
+          {lead.score}pts
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 text-[11px] text-slate-6">
+        {lead.phone && (
+          <span className="flex items-center gap-1 truncate">
+            <Phone className="w-2.5 h-2.5" />
+            {lead.phone.replace(/^(\+55)/, '').slice(-4)}
+          </span>
+        )}
+        {lead.email && (
+          <span className="flex items-center gap-1 truncate">
+            <Mail className="w-2.5 h-2.5" />
+            {lead.email.split('@')[0]}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-between mt-2">
+        <Badge
+          variant="neutral"
+          className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-widest"
+          style={{
+            color: (() => {
+              const band = lead.score_band as ScoreBand;
+              if (band === 'ready') return '#22c55e';
+              if (band === 'hot') return '#f97316';
+              if (band === 'warm') return '#eab308';
+              return '#64748b';
+            })(),
+          }}
+        >
+          {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
+        </Badge>
+        <span className="text-[10px] text-slate-6 font-mono">
+          {timeAgo(lead.created_at)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SortableCard({ lead, onClick }: { lead: DbLead; onClick: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: lead.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group/sortable">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10"
+      >
+        <GripVertical className="w-3 h-3 text-slate-6" />
+      </div>
+      <KanbanCard lead={lead} onClick={onClick} isDragging={isDragging} />
+    </div>
+  );
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
+
+function DroppableColumn({ id, activeId, children }: { id: string; activeId: string | null; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex-1 space-y-2 rounded-lg p-2 min-h-[100px]",
+        "bg-white/[0.01] border border-dashed border-white/[0.04]",
+        "transition-colors duration-150",
+        activeId && "border-white/[0.06]",
+        isOver && "border-white/[0.15] bg-white/[0.03]"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface KanbanBoardProps {
+  leads: DbLead[];
+  onStageChange: (leadId: string, toStage: LeadStage) => Promise<boolean>;
+  onRefresh: () => void;
+}
+
+export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanBoardProps) {
+  const router = useRouter();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const columnLeads = useCallback((stage: LeadStage) => {
+    return leads.filter(l => l.stage === stage);
+  }, [leads]);
+
+  const activeLead = activeId ? leads.find(l => l.id === activeId) : null;
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const leadId = active.id as string;
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    // The over.id could be a lead or a column droppable
+    let targetStage: LeadStage | null = null;
+
+    // Check if dropped on a column container
+    if (KANBAN_STAGES.includes(over.id as LeadStage)) {
+      targetStage = over.id as LeadStage;
+    } else {
+      // Dropped on another lead card — find which column it's in
+      const targetLead = leads.find(l => l.id === over.id);
+      if (targetLead) {
+        targetStage = targetLead.stage as LeadStage;
+      }
+    }
+
+    if (!targetStage || targetStage === lead.stage) return;
+
+    // Validate transition
+    const allowed = STAGE_TRANSITIONS[lead.stage as LeadStage] || [];
+    if (!allowed.includes(targetStage)) {
+      toast.error(`Transição inválida: ${STAGE_LABELS[lead.stage as LeadStage]} → ${STAGE_LABELS[targetStage]}`);
+      return;
+    }
+
+    toast.promise(
+      onStageChange(leadId, targetStage),
+      {
+        loading: `Movendo para ${STAGE_LABELS[targetStage]}...`,
+        success: `✓ Lead movido para ${STAGE_LABELS[targetStage]}`,
+        error: 'Falha ao mover lead',
+      }
+    );
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex gap-3 overflow-x-auto pb-4 min-h-[calc(100vh-200px)]">
+        {KANBAN_STAGES.map(stage => {
+          const stageLeads = columnLeads(stage);
+          const stageColor = STAGE_COLORS[stage];
+
+          return (
+            <div
+              key={stage}
+              id={stage}
+              className="flex flex-col min-w-[260px] w-[260px] shrink-0"
+            >
+              {/* Column Header */}
+              <div className="flex items-center justify-between px-2 py-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: stageColor }}
+                  />
+                  <span className="text-[12px] font-semibold text-slate-8 uppercase tracking-widest">
+                    {STAGE_LABELS[stage]}
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-6 bg-slate-3 px-1.5 py-0.5 rounded">
+                  {stageLeads.length}
+                </span>
+              </div>
+
+              {/* Column Drop Zone */}
+              <SortableContext
+                id={stage}
+                items={stageLeads.map(l => l.id)}
+                strategy={verticalListSortingStrategy}
+              >
+              <DroppableColumn id={stage} activeId={activeId}>
+                  {stageLeads.length === 0 ? (
+                    <div className="flex items-center justify-center h-20 text-[11px] text-slate-6 italic">
+                      Arraste leads aqui
+                    </div>
+                  ) : (
+                    stageLeads.map(lead => (
+                      <SortableCard
+                        key={lead.id}
+                        lead={lead}
+                        onClick={() => router.push(`/leads/${lead.id}`)}
+                      />
+                    ))
+                  )}
+              </DroppableColumn>
+              </SortableContext>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Drag Overlay — The floating card while dragging */}
+      <DragOverlay>
+        {activeLead ? (
+          <div className="w-[244px]">
+            <KanbanCard lead={activeLead} onClick={() => {}} isDragging />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}

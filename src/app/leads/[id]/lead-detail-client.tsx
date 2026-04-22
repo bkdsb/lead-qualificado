@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { STAGE_LABELS, SCORE_BAND_LABELS, MATCH_STRENGTH_LABELS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES } from '@/lib/utils/constants';
+import { STAGE_LABELS, SCORE_BAND_LABELS, MATCH_STRENGTH_LABELS, STAGE_TRANSITIONS, DUAL_CONFIRM_EVENTS, META_EVENT_NAMES, SERVICE_LABELS, SERVICE_COLORS, SERVICE_PACKAGES, PROPOSAL_TEMPLATES } from '@/lib/utils/constants';
+import type { ServiceInterest } from '@/lib/utils/constants';
 import type { DbLead, DbLeadIdentitySignal, DbLeadNote, DbLeadStageHistory, DbLeadScoreEvent, DbMetaEventDispatch, LeadStage, ScoreBand, MatchStrength } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Phone, Mail, Globe, Send, Activity, ShieldCheck, CheckCircle2, AlertTriangle, ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Globe, Send, Activity, ShieldCheck, CheckCircle2, AlertTriangle, ChevronRight, ChevronDown, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LeadData {
   lead: DbLead;
@@ -29,11 +31,13 @@ interface LeadData {
   };
 }
 
-export default function LeadDetailClient({ leadId }: { leadId: string }) {
+export default function LeadDetailClient({ leadId, userRole = 'operator' }: { leadId: string; userRole?: 'admin' | 'operator' }) {
+  const isAdmin = userRole === 'admin';
   const router = useRouter();
   const [data, setData] = useState<LeadData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'technical'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'proposals' | 'technical'>('timeline');
+  const [selectedService, setSelectedService] = useState<ServiceInterest | ''>('');
   const [showStageMenu, setShowStageMenu] = useState(false);
   const [showEventMenu, setShowEventMenu] = useState(false);
 
@@ -62,20 +66,31 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   async function handleStageChange(toStage: string) {
-    await fetch(`/api/leads/${leadId}/stage`, {
+    const res = await fetch(`/api/leads/${leadId}/stage`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to_stage: toStage }),
     });
+    const result = await res.json();
+    if (res.ok) {
+      const autoMsg = result.auto_dispatch?.event
+        ? ` · ⚡ ${result.auto_dispatch.event} enviado automaticamente`
+        : '';
+      toast.success(`Estágio atualizado para ${STAGE_LABELS[toStage as LeadStage]}${autoMsg}`);
+    } else {
+      toast.error(result.error || 'Erro ao mudar estágio');
+    }
     fetchData();
   }
 
   async function handleScoreEvent(eventType: string, customPoints?: number) {
-    await fetch(`/api/leads/${leadId}/score`, {
+    const res = await fetch(`/api/leads/${leadId}/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_type: eventType, points: customPoints, note: customPoints !== undefined ? `Ajuste manual: ${customPoints}` : undefined }),
     });
+    if (res.ok) toast.success('Score atualizado');
+    else toast.error('Erro ao atualizar score');
     fetchData();
   }
 
@@ -90,14 +105,22 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
     setAddingNote(true);
-    await fetch(`/api/leads/${leadId}/notes`, {
+    const res = await fetch(`/api/leads/${leadId}/notes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: noteContent }),
     });
+    if (res.ok) toast.success('Nota salva');
     setNoteContent('');
     setAddingNote(false);
     fetchData();
+  }
+
+  function handleWhatsApp(phone: string) {
+    const clean = phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${clean}`, '_blank');
+    // Auto-register conversation started
+    handleScoreEvent('conversation_started');
   }
 
   async function openDispatchModal(eventName: string) {
@@ -200,20 +223,22 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
               )}
             </div>
           )}
-          <div className="relative">
-            <Button variant="primary" onClick={() => { setShowEventMenu(!showEventMenu); setShowStageMenu(false); }} className="text-[12px] h-8 gap-1.5">
-              <Send className="w-3 h-3" /> Enviar <ChevronDown className={cn("w-3 h-3 transition-transform", showEventMenu && "rotate-180")} />
-            </Button>
-            {showEventMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-surface border border-white/[0.08] rounded-lg shadow-popover py-1 w-44 z-50">
+          {isAdmin && (
+            <div className="relative">
+              <Button variant="primary" onClick={() => { setShowEventMenu(!showEventMenu); setShowStageMenu(false); }} className="text-[12px] h-8 gap-1.5">
+                <Send className="w-3 h-3" /> Enviar <ChevronDown className={cn("w-3 h-3 transition-transform", showEventMenu && "rotate-180")} />
+              </Button>
+              {showEventMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-white/[0.08] rounded-lg shadow-popover py-1 w-44 z-50">
                 {META_EVENT_NAMES.map(ev => (
                   <button key={ev} onClick={() => { openDispatchModal(ev); setShowEventMenu(false); }} className="w-full text-left px-3 py-2 text-[13px] text-slate-8 hover:bg-white/[0.04] hover:text-white transition-colors cursor-pointer">
                     {EVENT_LABELS[ev] || ev}
                   </button>
                 ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -259,9 +284,20 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                   <Mail className="w-4 h-4 text-slate-7" />
                   <span className="text-sm text-slate-9 tracking-tight">{lead.email || '—'}</span>
                 </div>
-                <div className="flex items-center gap-3 p-4">
-                  <Phone className="w-4 h-4 text-slate-7" />
-                  <span className="text-sm text-slate-9 tracking-tight font-mono">{lead.phone || '—'}</span>
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-slate-7" />
+                    <span className="text-sm text-slate-9 tracking-tight font-mono">{lead.phone || '—'}</span>
+                  </div>
+                  {lead.phone && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleWhatsApp(lead.phone!); }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 text-[11px] font-medium border border-green-500/20 hover:bg-green-500/20 transition-colors cursor-pointer"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      WhatsApp
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 p-4">
                   <Globe className="w-4 h-4 text-slate-7" />
@@ -279,6 +315,7 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
             {([
               { key: 'timeline', label: 'Histórico' },
               { key: 'notes', label: 'Anotações' },
+              { key: 'proposals', label: 'Propostas' },
               { key: 'technical', label: 'Técnico' },
             ] as const).map(tab => (
               <button
@@ -445,6 +482,100 @@ export default function LeadDetailClient({ leadId }: { leadId: string }) {
                           <span className="text-[10px] text-slate-6 font-mono mt-2 block">{new Date(n.created_at).toLocaleString('pt-BR')}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Proposals Tab */}
+                {activeTab === 'proposals' && (
+                  <div className="space-y-6">
+                    {/* Service Interest Selector */}
+                    <div>
+                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Interesse do Lead</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(SERVICE_LABELS).map(([key, label]) => (
+                          <button
+                            key={key}
+                            onClick={() => setSelectedService(selectedService === key ? '' : key as ServiceInterest)}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-all cursor-pointer",
+                              selectedService === key
+                                ? "border-white/20 text-white"
+                                : "border-white/[0.04] text-slate-7 hover:text-slate-9 hover:border-white/[0.08]"
+                            )}
+                            style={selectedService === key ? {
+                              backgroundColor: `${SERVICE_COLORS[key as ServiceInterest]}15`,
+                              borderColor: `${SERVICE_COLORS[key as ServiceInterest]}40`,
+                              color: SERVICE_COLORS[key as ServiceInterest],
+                            } : undefined}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Packages — Referência rápida (valor sempre editável) */}
+                    <div>
+                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Referência de Pacotes</h4>
+                      <div className="space-y-2">
+                        {SERVICE_PACKAGES
+                          .filter(p => !selectedService || p.service === selectedService)
+                          .map(pkg => (
+                            <div key={pkg.id} className="p-3 bg-slate-2 border border-white/[0.04] rounded-lg hover:border-white/[0.08] transition-colors">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[13px] font-medium text-white">{pkg.name}</div>
+                                  <div className="text-[10px] text-slate-6 mt-0.5">{pkg.description}</div>
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {pkg.includes.slice(0, 3).map((item, i) => (
+                                      <span key={i} className="text-[9px] text-slate-7 bg-slate-3 px-1.5 py-0.5 rounded">✓ {item}</span>
+                                    ))}
+                                    {pkg.includes.length > 3 && <span className="text-[9px] text-slate-6">+{pkg.includes.length - 3}</span>}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+                                  <div className="text-sm font-bold font-mono text-green-400">
+                                    R${pkg.price.toLocaleString('pt-BR')}
+                                  </div>
+                                  <button
+                                    onClick={() => { setPurchaseValue(pkg.price); toast.success(`Valor preenchido: R$${pkg.price}`); }}
+                                    className="text-[9px] font-medium text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                                  >
+                                    Usar valor
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Proposal Templates — Copy-Paste */}
+                    <div>
+                      <h4 className="text-[11px] font-medium text-slate-7 uppercase tracking-widest mb-3">Mensagens Prontas</h4>
+                      <div className="space-y-2">
+                        {Object.entries(PROPOSAL_TEMPLATES).map(([key, tpl]) => {
+                          const message = tpl.message(lead.name || 'Cliente', 'Bruno');
+                          return (
+                            <div key={key} className="p-3 bg-slate-2 border border-white/[0.04] rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[12px] font-medium text-slate-8">{tpl.title}</span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(message);
+                                    toast.success('Mensagem copiada!');
+                                  }}
+                                  className="text-[10px] font-medium text-blue-400 hover:text-blue-300 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                                >
+                                  Copiar
+                                </button>
+                              </div>
+                              <pre className="text-[11px] text-slate-7 whitespace-pre-wrap leading-relaxed font-sans">{message}</pre>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}

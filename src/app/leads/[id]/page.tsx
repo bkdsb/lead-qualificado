@@ -9,9 +9,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // Fetch user role for permission control
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const userRole = (dbUser?.role as 'admin' | 'operator') || 'operator';
+
   return (
     <AppShell>
-      <LeadDetailClient leadId={id} />
+      <LeadDetailClient leadId={id} userRole={userRole} />
     </AppShell>
   );
 }

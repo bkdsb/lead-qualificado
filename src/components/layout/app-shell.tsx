@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutDashboard, Users, Send, ShieldCheck, Activity, Settings, LogOut, Menu, X } from 'lucide-react';
@@ -10,18 +10,33 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
   { href: '/leads', label: 'Leads', icon: Users },
-  { href: '/events', label: 'Envios Meta', icon: Send },
-  { href: '/qa', label: 'Qualidade', icon: ShieldCheck },
-  { href: '/audit', label: 'Auditoria', icon: Activity },
-  { href: '/settings', label: 'Configurações', icon: Settings },
+  { href: '/events', label: 'Envios Meta', icon: Send, adminOnly: true },
+  { href: '/qa', label: 'Qualidade', icon: ShieldCheck, adminOnly: true },
+  { href: '/audit', label: 'Auditoria', icon: Activity, adminOnly: true },
+  { href: '/settings', label: 'Configurações', icon: Settings, adminOnly: true },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
+
+  // Fetch user role on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from('users').select('role').eq('id', user.id).single().then(({ data }) => {
+          if (data?.role) setUserRole(data.role as 'admin' | 'operator');
+        });
+      }
+    });
+  }, []);
+
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.adminOnly || userRole === 'admin');
 
   async function handleLogout() {
     const supabase = createClient();
@@ -94,21 +109,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div>
             <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
             <div className="space-y-0.5">
-              {NAV_ITEMS.slice(0, 2).map(item => <NavButton key={item.href} item={item} />)}
+              {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
             </div>
           </div>
-          <div>
-            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Conversões</div>
-            <div className="space-y-0.5">
-              {NAV_ITEMS.slice(2, 4).map(item => <NavButton key={item.href} item={item} />)}
+          {userRole === 'admin' && (
+            <div>
+              <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
+              <div className="space-y-0.5">
+                {visibleNavItems.filter(i => i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
-            <div className="space-y-0.5">
-              {NAV_ITEMS.slice(4).map(item => <NavButton key={item.href} item={item} />)}
-            </div>
-          </div>
+          )}
         </nav>
 
         <div className="p-3 border-t border-white/[0.04]">
@@ -146,21 +157,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div>
                 <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Principal</div>
                 <div className="space-y-0.5">
-                  {NAV_ITEMS.slice(0, 2).map(item => <NavButton key={item.href} item={item} />)}
+                  {visibleNavItems.filter(i => !i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
                 </div>
               </div>
-              <div>
-                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Conversões</div>
-                <div className="space-y-0.5">
-                  {NAV_ITEMS.slice(2, 4).map(item => <NavButton key={item.href} item={item} />)}
+              {userRole === 'admin' && (
+                <div>
+                  <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
+                  <div className="space-y-0.5">
+                    {visibleNavItems.filter(i => i.adminOnly).map(item => <NavButton key={item.href} item={item} />)}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.1em] font-semibold text-slate-7">Admin</div>
-                <div className="space-y-0.5">
-                  {NAV_ITEMS.slice(4).map(item => <NavButton key={item.href} item={item} />)}
-                </div>
-              </div>
+              )}
             </nav>
 
             <div className="p-3 border-t border-white/[0.04]">

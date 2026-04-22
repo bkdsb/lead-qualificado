@@ -3,10 +3,14 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { STAGE_TRANSITIONS } from '@/lib/utils/constants';
 import { auditStageChange } from '@/lib/services/audit-service';
+import { tryAutoDispatch } from '@/lib/services/auto-dispatch-service';
 import type { LeadStage } from '@/types/database';
 
 /**
  * PATCH /api/leads/[id]/stage — Change lead stage
+ * 
+ * Now includes auto-dispatch: when a lead moves to certain stages,
+ * automatically fires the corresponding Meta CAPI event.
  */
 export async function PATCH(
   request: NextRequest,
@@ -77,9 +81,33 @@ export async function PATCH(
   // Audit
   await auditStageChange(id, user.id, currentStage, targetStage, reason);
 
+  // Auto-dispatch Meta CAPI event — ONLY for admin users
+  // Operators can move stages freely but won't trigger Meta events
+  const { data: dbUser } = await admin
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  let autoDispatchResult = { dispatched: false, eventName: undefined as string | undefined, error: undefined as string | undefined };
+
+  if (dbUser?.role === 'admin') {
+    const result = await tryAutoDispatch(id, targetStage, user.id).catch(() => null);
+    if (result) {
+      autoDispatchResult = {
+        dispatched: result.dispatched,
+        eventName: result.eventName,
+        error: result.error,
+      };
+    }
+  }
+
   return NextResponse.json({
     success: true,
     from_stage: currentStage,
     to_stage: targetStage,
+    auto_dispatch: autoDispatchResult.dispatched
+      ? { event: autoDispatchResult.eventName, status: 'sent' }
+      : undefined,
   });
 }

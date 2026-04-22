@@ -19,6 +19,20 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Permission check: only admin can dispatch Meta events
+  const admin = createAdminClient();
+  const { data: dbUser } = await admin
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (dbUser?.role !== 'admin') {
+    return NextResponse.json({
+      error: 'Permissão negada. Apenas administradores podem enviar eventos Meta.',
+    }, { status: 403 });
+  }
+
   const body = await request.json();
   const {
     lead_id,
@@ -48,7 +62,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Fetch lead, signals and global settings
-  const admin = createAdminClient();
+  // (admin client already created above for role check)
   const [leadResult, signalsResult, settingsResult] = await Promise.all([
     admin.from('leads').select('*').eq('id', lead_id).single(),
     admin.from('lead_identity_signals').select('*').eq('lead_id', lead_id),
