@@ -199,24 +199,27 @@ export default function LeadsClient() {
       </div>
 
       {/* Kanban View */}
-      {isKanban && !loading && (
-        <KanbanBoard
-          leads={leads}
-          onStageChange={handleKanbanStageChange}
-          onRefresh={fetchLeads}
-        />
-      )}
-      {isKanban && loading && (
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="min-w-[260px] w-[260px] shrink-0 space-y-2">
-              <Skeleton className="h-6 w-24 mb-3" />
-              <Skeleton className="h-20 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg opacity-50" />
-            </div>
-          ))}
-        </div>
+      {isKanban && (
+        loading && leads.length === 0 ? (
+          <div className="flex gap-3 overflow-x-auto pb-4 opacity-50 pointer-events-none">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="min-w-[260px] w-[260px] shrink-0 space-y-2">
+                <Skeleton className="h-6 w-24 mb-3" />
+                <Skeleton className="h-20 w-full rounded-lg" />
+                <Skeleton className="h-20 w-full rounded-lg" />
+                <Skeleton className="h-20 w-full rounded-lg opacity-50" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <KanbanBoard
+              leads={leads}
+              onStageChange={handleKanbanStageChange}
+              onRefresh={fetchLeads}
+            />
+          </div>
+        )
       )}
 
       {/* Table View — Desktop */}

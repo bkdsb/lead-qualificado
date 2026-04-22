@@ -10,6 +10,7 @@ import type { LeadStage, ActionSource } from '@/types/database';
 const AUTO_DISPATCH_MAP: Partial<Record<LeadStage, string>> = {
   contacted: 'Lead',
   qualified: 'QualifiedLead',
+  purchase: 'Purchase',
 };
 
 /**
@@ -17,7 +18,7 @@ const AUTO_DISPATCH_MAP: Partial<Record<LeadStage, string>> = {
  * 
  * Rules:
  * - Only fires for mapped stages (contacted → Lead, qualified → QualifiedLead)
- * - Purchase is NEVER auto-dispatched (requires manual dual-confirm)
+ * - Purchase auto-dispatch will include the lead.purchase_value
  * - Respects idempotency — won't re-send if already sent
  * - Runs as fire-and-forget — never blocks the stage change response
  * - Logs result for audit trail
@@ -88,6 +89,10 @@ export async function tryAutoDispatch(
       actionSource: 'website' as ActionSource,
       actorId,
       isTest,
+      // Pass purchase_value if event is Purchase
+      customData: eventName === 'Purchase' && leadResult.data.purchase_value ? {
+        value: leadResult.data.purchase_value
+      } : undefined,
       // Don't override idempotency — respect it for auto-dispatch
       overrideIdempotency: false,
     });
