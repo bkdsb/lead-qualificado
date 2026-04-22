@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { STAGE_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
 import Link from 'next/link';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 
 export interface DashboardStats {
@@ -223,7 +223,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                   <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#53534e' }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#53534e' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <RechartsTooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="novos" name="Novos" stroke="#3b82f6" fill="url(#gradNovos)" strokeWidth={1.5} />
                   <Area type="monotone" dataKey="vendas" name="Vendas" stroke="#10b981" fill="url(#gradVendas)" strokeWidth={2} />
                 </AreaChart>
@@ -249,7 +249,7 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10, fill: '#53534e' }} tickLine={false} axisLine={false} />
                   <YAxis dataKey="stage" type="category" tick={{ fontSize: 10, fill: '#706e67' }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
                   <Bar dataKey="count" name="Leads" radius={[0, 4, 4, 0]} maxBarSize={20}>
                     {chartData.funnelData.filter(f => f.key !== 'lost').map((entry) => (
                       <Cell key={entry.key} fill={FUNNEL_COLORS[entry.key] || '#53534e'} fillOpacity={0.7} />
