@@ -297,7 +297,7 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
       {/* Drag Overlay — The floating card while dragging */}
       <DragOverlay>
         {activeLead ? (
-          <div className="w-[244px]">
+          <div className="w-[244px] pointer-events-none">
             <KanbanCard lead={activeLead} onDoubleClick={() => {}} isDragging />
           </div>
         ) : null}

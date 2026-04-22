@@ -1,14 +1,14 @@
 import { LeadStage, ScoreBand, ScoreEventType, MatchStrength } from '@/types/database';
 
-/** Valid stage transitions */
+/** Valid stage transitions (relaxed to allow skipping forward) */
 export const STAGE_TRANSITIONS: Record<LeadStage, LeadStage[]> = {
-  new: ['contacted', 'lost'],
-  contacted: ['conversing', 'lost'],
-  conversing: ['proposal', 'qualified', 'lost'],
-  proposal: ['qualified', 'lost'],
+  new: ['contacted', 'conversing', 'proposal', 'qualified', 'purchase', 'lost'],
+  contacted: ['conversing', 'proposal', 'qualified', 'purchase', 'lost'],
+  conversing: ['proposal', 'qualified', 'purchase', 'lost'],
+  proposal: ['qualified', 'purchase', 'lost'],
   qualified: ['purchase', 'lost'],
   purchase: [],
-  lost: ['new'], // allow reactivation
+  lost: ['new', 'contacted'], // allow reactivation
 };
 
 /** Default score points per event type */
