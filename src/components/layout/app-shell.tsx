@@ -17,21 +17,18 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Configurações', icon: Settings, adminOnly: true },
 ];
 
-function getCachedRole(): 'admin' | 'operator' {
-  if (typeof window === 'undefined') return 'operator';
-  return (sessionStorage.getItem('user_role') as 'admin' | 'operator') || 'operator';
-}
-
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'operator'>(getCachedRole);
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
 
   // Fetch user role once — cache in sessionStorage to prevent flash on navigation
   useEffect(() => {
+    const cached = sessionStorage.getItem('user_role');
+    if (cached === 'admin') setUserRole('admin');
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -102,7 +99,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar — always visible on md+ */}
       <aside className={cn(
-        "hidden md:flex flex-col sticky top-0 h-screen w-[240px] shrink-0 border-r border-white/[0.04] bg-slate-1",
+        "hidden md:flex flex-col fixed top-0 left-0 h-screen w-[240px] shrink-0 border-r border-white/[0.04] bg-slate-1 z-30",
         isTest && "top-6 h-[calc(100vh-24px)]"
       )}>
         <div className="flex items-center px-5 py-4 border-b border-white/[0.04]">
@@ -184,7 +181,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={cn("flex-1 min-w-0 flex flex-col", "pt-[52px] md:pt-0", isTest && "pt-[76px] md:pt-6")}>
+      <main className={cn("flex-1 min-w-0 flex flex-col md:ml-[240px]", "pt-[52px] md:pt-0", isTest && "pt-[76px] md:pt-6")}>
         {children}
       </main>
     </div>
