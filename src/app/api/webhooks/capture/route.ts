@@ -93,48 +93,59 @@ export async function POST(request: Request) {
     };
 
     // Core identity
-    addSignal('email', email, 'webhook_capture');
-    addSignal('phone', phone, 'webhook_capture');
+    addSignal('email', email, 'webhook');
+    addSignal('phone', phone, 'webhook');
 
     // Auto-extract first name / last name from full name (boosts EMQ)
     if (name) {
       const parts = name.trim().split(/\s+/);
-      if (parts.length >= 1) addSignal('fn', parts[0], 'webhook_capture');
-      if (parts.length >= 2) addSignal('ln', parts.slice(1).join(' '), 'webhook_capture');
+      if (parts.length >= 1) addSignal('fn', parts[0], 'webhook');
+      if (parts.length >= 2) addSignal('ln', parts.slice(1).join(' '), 'webhook');
     }
 
     // Auto-generate external_id from lead UUID (boosts EMQ)
-    addSignal('external_id', leadData.id, 'system');
+    addSignal('external_id', leadData.id, 'api');
 
     // Meta attribution signals
-    addSignal('fbc', metaParams.fbc, 'param_builder');
-    addSignal('fbp', metaParams.fbp, 'param_builder');
-    addSignal('client_ip_address', metaParams.client_ip_address, 'param_builder');
-    addSignal('client_user_agent', metaParams.client_user_agent, 'param_builder');
+    addSignal('fbc', metaParams.fbc, 'api');
+    addSignal('fbp', metaParams.fbp, 'api');
+    addSignal('client_ip_address', metaParams.client_ip_address, 'api');
+    addSignal('client_user_agent', metaParams.client_user_agent, 'api');
 
     if (signalsToInsert.length > 0) {
-      await supabase.from('lead_identity_signals').insert(signalsToInsert);
+      const { error: signalsError } = await supabase.from('lead_identity_signals').insert(signalsToInsert);
+      if (signalsError) {
+        console.error('Webhook Signals Insert Error:', signalsError);
+      }
     }
 
     // 3. Add services and area to the first note to inform the manager
     const noteText = `Lead capturado automaticamente no Chat do Site.\n* Área/Ramo: ${area || 'Não informado'}\n* Serviços de interesse: ${services?.join(', ') || 'Não informado'}`;
-    
-    await supabase
+
+    const { error: noteError } = await supabase
       .from('lead_notes')
       .insert({
         lead_id: leadData.id,
         content: noteText
       });
 
+    if (noteError) {
+      console.error('Webhook Note Insert Error:', noteError);
+    }
+
     // 4. Log event
-    await supabase
+    const { error: eventError } = await supabase
       .from('lead_score_events')
       .insert({
         lead_id: leadData.id,
         event_type: 'conversation_started',
         points: 20,
-        note: 'Lead initiatied WhatsApp chat from floating widget'
+        note: 'Lead initiated WhatsApp chat from site modal'
       });
+
+    if (eventError) {
+      console.error('Webhook Score Event Insert Error:', eventError);
+    }
 
     return NextResponse.json({ success: true, leadId: leadData.id }, { headers: corsHeaders });
   } catch (err: any) {

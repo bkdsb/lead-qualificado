@@ -48,7 +48,7 @@ export type SignalType =
   | 'ig_account_id' | 'ig_sid' | 'page_id' | 'page_scoped_user_id';
 
 /** Signal source */
-export type SignalSource = 'lp' | 'whatsapp' | 'manual' | 'webhook' | 'api';
+export type SignalSource = 'lp' | 'whatsapp' | 'manual' | 'webhook' | 'api' | 'system' | 'admin_fallback' | 'test_simulation';
 
 /** User role */
 export type UserRole = 'admin' | 'operator';
