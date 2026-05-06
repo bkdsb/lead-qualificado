@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutDashboard, Users, Send, ShieldCheck, Activity, Settings, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,14 +22,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'operator'>('operator');
+  const [userRole, setUserRole] = useState<'admin' | 'operator'>(() => {
+    if (typeof window === 'undefined') return 'operator';
+    return sessionStorage.getItem('user_role') === 'admin' ? 'admin' : 'operator';
+  });
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
 
   // Fetch user role once — cache in sessionStorage to prevent flash on navigation
   useEffect(() => {
-    const cached = sessionStorage.getItem('user_role');
-    if (cached === 'admin') setUserRole('admin');
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -77,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Topbar */}
       <div className={cn("md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-slate-1/80 backdrop-blur-xl", isTest && "top-6")}>
-        <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
+        <Image src="/logoRastroBranca.svg" alt="Rastro" width={180} height={52} className="h-5 w-auto object-contain" />
         <button className="p-2 text-slate-7 rounded-md active:bg-white/[0.04]" onClick={() => setIsMobileMenuOpen(true)}>
           <Menu className="w-5 h-5" />
         </button>
@@ -103,7 +105,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         isTest && "top-6 h-[calc(100vh-24px)]"
       )}>
         <div className="flex items-center px-5 py-4 border-b border-white/[0.04]">
-          <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
+          <Image src="/logoRastroBranca.svg" alt="Rastro" width={180} height={52} className="h-5 w-auto object-contain" />
         </div>
 
         <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto">
@@ -146,7 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
-              <span className="font-semibold text-[15px] tracking-tight text-white/90">Lead Qualificado</span>
+              <Image src="/logoRastroBranca.svg" alt="Rastro" width={180} height={52} className="h-5 w-auto object-contain" />
               <button className="p-1 text-slate-7" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="w-4 h-4" />
               </button>

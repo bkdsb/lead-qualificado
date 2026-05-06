@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RASTRO — por Bruno Belegante</title>
+    <meta name="description" content="Para empresas e profissionais que investem em Meta Ads e estão cansados de ouvir 'veio da internet'. Saiba exatamente qual anúncio trouxe cada cliente que pagou.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #000; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .grid-bg { background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 24px 24px; }
+        
+        @keyframes phrase-rotate {
+            0% { opacity: 0; filter: blur(9px); transform: translateY(14px); }
+            7% { opacity: 1; filter: blur(0); transform: translateY(0); }
+            22% { opacity: 1; filter: blur(0); transform: translateY(0); }
+            29% { opacity: 0; filter: blur(8px); transform: translateY(-10px); }
+            100% { opacity: 0; filter: blur(8px); transform: translateY(-10px); }
+        }
+        .rotator { position: relative; display: inline-block; vertical-align: bottom; white-space: nowrap; text-align: left; }
+        .rotator__item {
+            position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: flex-start;
+            opacity: 0;
+            animation: phrase-rotate 7.8s linear infinite;
+        }
+        .rotator__item:nth-child(2) { animation-delay: 0s; }
+        .rotator__item:nth-child(3) { animation-delay: 2.6s; }
+        .rotator__item:nth-child(4) { animation-delay: 5.2s; }
+        .rotator__sizer { display: block; visibility: hidden; white-space: nowrap; pointer-events: none; }
+    </style>
+</head>
+<body class="bg-black text-zinc-200">
+    <!-- Header -->
+    <header class="fixed top-0 w-full z-40 border-b border-white/5 bg-black/70 glass">
+        <div class="max-w-6xl mx-auto px-6 h-[68px] flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="./logoRastroBranca.svg" alt="RASTRO" class="h-5 w-auto">
+                <span class="text-zinc-600 hidden sm:block">•</span>
+                <span class="text-zinc-500 text-sm hidden sm:block">por Bruno Belegante</span>
+            </div>
+            <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20vi%20o%20RASTRO%20e%20quero%20saber%20mais" class="text-sm px-4 py-2 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition">Falar no WhatsApp</a>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <main class="pt-[68px]">
+        <section class="relative overflow-hidden">
+            <div class="absolute inset-0 grid-bg opacity-[0.15]"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-zinc-900/20 via-transparent to-black"></div>
+            <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-24 md:pt-28 md:pb-32">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 mb-8">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-xs text-zinc-400">Feito para quem roda tráfego pago no Meta Ads</span>
+                </div>
+                
+                <h1 class="text-[40px] leading-[1.05] md:text-6xl lg:text-[72px] font-semibold tracking-tight text-white max-w-4xl">
+                    Você sabe exatamente qual anúncio trouxe <span class="text-[#FF4D00] rotator">
+                        <span class="rotator__sizer">cada paciente?</span>
+                        <span class="rotator__item">cada cliente?</span>
+                        <span class="rotator__item">cada contato?</span>
+                        <span class="rotator__item">cada paciente?</span>
+                    </span>
+                </h1>
+                
+                <p class="mt-8 text-lg md:text-xl text-zinc-400 max-w-2xl leading-relaxed">
+                    Você investe pesado no Meta Ads, o WhatsApp lota de contatos, mas no final do mês a conta não fecha? O RASTRO foi criado para quem está cansado de pagar por cliques de curiosos e quer fazer o algoritmo trabalhar para encontrar quem realmente tem dinheiro para comprar.
+                </p>
+
+                <div class="mt-10 flex flex-col sm:flex-row gap-3">
+                    <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20quero%20ver%20o%20RASTRO%20funcionando" class="px-7 py-4 rounded-2xl bg-white text-black font-medium text-[15px] hover:bg-zinc-200 transition text-center">
+                        Quero ver funcionando
+                    </a>
+                    <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20tenho%20uma%20d%C3%BAvida%20sobre%20o%20RASTRO" class="px-7 py-4 rounded-2xl border border-white/15 hover:bg-white/5 transition text-[15px] text-center">
+                        Tirar dúvida no WhatsApp
+                    </a>
+                </div>
+
+                <div class="mt-16 flex items-center gap-6 text-sm text-zinc-500">
+                    <div class="flex items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5l10 -10"/></svg>
+                        Sem contrato longo
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5l10 -10"/></svg>
+                        Instalação em 3 dias
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dor -->
+        <section class="border-t border-white/5 py-24 md:py-32">
+            <div class="max-w-6xl mx-auto px-6">
+                <p class="text-zinc-500 text-sm uppercase tracking-widest mb-4">A realidade hoje</p>
+                <h2 class="text-3xl md:text-4xl font-semibold text-white max-w-2xl">Você está pagando no escuro</h2>
+                
+                <div class="mt-14 grid md:grid-cols-3 gap-5">
+                    <div class="group relative rounded-[28px] border border-white/10 bg-zinc-950 p-8 hover:bg-zinc-900/50 transition">
+                        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                            <span class="text-zinc-400 font-medium">1</span>
+                        </div>
+                        <h3 class="text-white font-medium mb-3">R$ 2-5 mil por mês</h3>
+                        <p class="text-zinc-400 leading-relaxed">Você paga tráfego todo mês. A agência te manda print de cliques e impressões.</p>
+                    </div>
+                    
+                    <div class="group relative rounded-[28px] border border-white/10 bg-zinc-950 p-8 hover:bg-zinc-900/50 transition">
+                        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                            <span class="text-zinc-400 font-medium">2</span>
+                        </div>
+                        <h3 class="text-white font-medium mb-3">Secretária no papel</h3>
+                        <p class="text-zinc-400 leading-relaxed">Lead chega no WhatsApp. Ela anota no caderno. Quando você pergunta, é sempre "veio da internet".</p>
+                    </div>
+                    
+                    <div class="group relative rounded-[28px] border border-white/10 bg-zinc-950 p-8 hover:bg-zinc-900/50 transition">
+                        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                            <span class="text-zinc-400 font-medium">3</span>
+                        </div>
+                        <h3 class="text-white font-medium mb-3">O Algoritmo é Cego</h3>
+                        <p class="text-zinc-400 leading-relaxed">Sua campanha otimiza para quem apenas clica ou manda "Oi" no WhatsApp. O Facebook gasta seu orçamento buscando pessoas fáceis de clicar, porque ele nunca fica sabendo quem realmente tirou o cartão de crédito da carteira.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Solução -->
+        <section class="border-t border-white/5 py-24 md:py-32 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.03),_transparent_60%)]">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="max-w-3xl">
+                    <p class="text-zinc-500 text-sm uppercase tracking-widest mb-4">A solução</p>
+                    <h2 class="text-3xl md:text-5xl font-semibold text-white leading-tight">Sua secretária arrasta. O Facebook aprende.</h2>
+                    <p class="mt-6 text-lg text-zinc-400">É um CRM simples. Nada de sistema complicado.</p>
+                </div>
+
+                <div class="mt-16 bg-zinc-950 border border-white/10 rounded-[32px] p-6 md:p-10 overflow-hidden relative" id="kanban-container">
+                    <!-- Cursor -->
+                    <div id="anim-cursor" class="absolute z-50 pointer-events-none opacity-0" style="width: 28px; height: 28px; top: 0; left: 0;">
+                        <svg id="cursor-pointer" viewBox="0 0 24 24" class="w-7 h-7 drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+                            <path fill="white" stroke="black" stroke-width="1.5" d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L6.35 2.85a.5.5 0 0 0-.85.36Z"/>
+                        </svg>
+                        <svg id="cursor-grab" viewBox="0 0 448 512" class="w-6 h-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] hidden translate-x-1 translate-y-1">
+                            <path fill="white" stroke="black" stroke-width="24" stroke-linejoin="round" d="M144 0C117.5 0 96 21.5 96 48l0 48 0 28.5L96 176c0 8.8-7.2 16-16 16s-16-7.2-16-16l0-26.7-9 7.5C40.4 169 32 187 32 206L32 244c0 38 16.9 74 46.1 98.3L128 384l0 96c0 17.7 14.3 32 32 32l160 0c17.7 0 32-14.3 32-32l0-105.3c46.9-19 80-65 80-118.7l0-80 0-16 0-16c0-26.5-21.5-48-48-48c-12.4 0-23.6 4.7-32.1 12.3C350 83.5 329.3 64 304 64c-12.4 0-23.6 4.7-32.1 12.3C270 51.5 249.3 32 224 32c-12.4 0-23.6 4.7-32.1 12.3C190 19.5 169.3 0 144 0z" />
+                        </svg>
+                    </div>
+
+                    <!-- Confirm Card (Hidden by default) -->
+                    <div id="anim-confirm-card" class="bg-black border border-blue-500/30 rounded-lg p-3 shadow-[0_0_15px_rgba(59,130,246,0.15)] absolute z-40 opacity-0 pointer-events-none transition-all duration-300">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">Confirmar</span>
+                            <div class="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono">
+                                <span>Novo</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
+                                <span class="text-white">Pagou</span>
+                            </div>
+                        </div>
+                        <div class="mb-3 space-y-1.5">
+                            <label class="text-[10px] text-zinc-500 uppercase tracking-wider">Valor da Venda (R$)</label>
+                            <div class="flex h-8 bg-zinc-900 border border-white/10 rounded-md items-center px-2 text-xs text-white relative">
+                                <span class="text-zinc-500 mr-1">R$</span>
+                                <span id="anim-typing-value"></span>
+                                <span id="anim-typing-cursor" class="w-1 h-3 bg-blue-400 ml-0.5 animate-pulse opacity-0"></span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1 h-7 rounded-md bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-300">Cancelar</div>
+                            <div id="anim-btn-confirmar" class="flex-1 h-7 rounded-md bg-white text-black font-medium flex items-center justify-center text-[10px] transition-transform">Confirmar</div>
+                        </div>
+                    </div>
+
+                    <!-- Final Success Card (Hidden by default) -->
+                    <div id="anim-final-card" class="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3 absolute z-30 opacity-0 pointer-events-none transition-opacity duration-300">
+                        <p class="text-sm text-white">Ana - Implante</p>
+                        <p class="text-[11px] text-emerald-400/80 mt-1">R$ 1.500</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Novo -->
+                        <div class="bg-black/60 border border-white/5 rounded-2xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs uppercase tracking-wide text-zinc-500">Novo</span>
+                                <span class="text-xs text-zinc-600">3</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-zinc-900 border border-white/5 rounded-xl p-3 relative z-10" id="anim-card">
+                                    <p class="text-sm text-white">Ana - Implante</p>
+                                    <p class="text-[11px] text-zinc-500 mt-1">Anúncio: Reels 03</p>
+                                </div>
+                                <div class="bg-zinc-900/50 border border-white/5 rounded-xl p-3 opacity-60">
+                                    <p class="text-sm text-zinc-400">Carlos Alves - Assessoria</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Falou -->
+                        <div class="bg-black/60 border border-white/5 rounded-2xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs uppercase tracking-wide text-zinc-500">Falou</span>
+                                <span class="text-xs text-zinc-600">5</span>
+                            </div>
+                            <div class="bg-zinc-900/30 border border-dashed border-white/10 rounded-xl p-3 h-20"></div>
+                        </div>
+
+                        <!-- Agendou -->
+                        <div class="bg-black/60 border border-white/5 rounded-2xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs uppercase tracking-wide text-zinc-500">Agendou</span>
+                                <span class="text-xs text-zinc-600">2</span>
+                            </div>
+                            <div class="bg-zinc-900/30 border border-dashed border-white/10 rounded-xl p-3 h-20"></div>
+                        </div>
+
+                        <!-- Pagou -->
+                        <div id="col-pagou-wrapper" class="bg-black/60 border border-emerald-500/20 rounded-2xl p-4 ring-1 ring-emerald-500/10 transition-all duration-300 relative h-full">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs uppercase tracking-wide text-emerald-400">Pagou</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-400"><path d="M5 12l5 5l10 -10"/></svg>
+                            </div>
+                            <div id="col-pagou" class="space-y-2 min-h-[80px] p-2 -mx-2 rounded-lg border border-transparent transition-colors duration-150 relative">
+                                <div class="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3" id="target-pagou-card">
+                                    <p class="text-sm text-white">Mariana - Lente</p>
+                                    <p class="text-[11px] text-emerald-400/80 mt-1">R$ 4.200</p>
+                                </div>
+                            </div>
+                            <div id="anim-badge" class="absolute -top-3 -right-3 bg-emerald-500 text-black text-[10px] font-bold px-2 py-1 rounded-full opacity-0 scale-90 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.5)] z-20">Avisado ao Meta!</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="text-emerald-400" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <p class="text-zinc-300 leading-relaxed"><strong class="text-white">Você avisa quem comprou. O algoritmo busca os "clones".</strong><br/>Ao arrastar um contato para a coluna "Pagou", o RASTRO avisa silenciosamente o algoritmo do Meta: <em class="text-zinc-400">"Esse é o perfil exato de quem compra"</em>. Em poucos dias, suas campanhas param de buscar volume vazio e passam a focar cirurgicamente em contatos com o mesmo comportamento e poder de compra.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Tecnicas Reais -->
+        <section class="border-t border-white/5 py-24 bg-zinc-950/30">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="max-w-2xl mb-14">
+                    <p class="text-emerald-500 text-sm uppercase tracking-widest mb-4">Motor Inteligente</p>
+                    <h2 class="text-3xl md:text-4xl font-semibold text-white">Não é só organização. É inteligência de tráfego.</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="border border-white/10 rounded-3xl p-8 bg-black">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="text-emerald-400" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <h3 class="text-xl text-white font-medium mb-3">Qualificação Automática do Pixel</h3>
+                        <p class="text-zinc-400 leading-relaxed">Campanhas que dão lucro não dependem de mágica, dependem de dados perfeitos. O sistema coleta as informações invisíveis de cada contato e cruza com os servidores do Facebook. O resultado? O Meta entende 100% de onde veio o seu faturamento e barateia o custo das suas próximas vendas.</p>
+                    </div>
+                    <div class="border border-white/10 rounded-3xl p-8 bg-black">
+                        <div class="w-12 h-12 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-6">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="text-orange-400" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <h3 class="text-xl text-white font-medium mb-3">Foco no Fechamento</h3>
+                        <p class="text-zinc-400 leading-relaxed">Se entram 50 mensagens no dia, quem a sua equipe deve atender primeiro? O RASTRO identifica automaticamente a temperatura de cada conversa, separando quem está apenas pesquisando de quem está pronto para a decisão. Sua equipe foca energia onde o dinheiro está.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Como funciona -->
+        <section class="border-t border-white/5 py-24">
+            <div class="max-w-6xl mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-semibold text-white">Como funciona</h2>
+                
+                <div class="mt-14 grid md:grid-cols-3 gap-8">
+                    <div>
+                        <div class="text-6xl font-light text-zinc-800 mb-6">01</div>
+                        <h3 class="text-xl text-white font-medium mb-3">Instalação (3 dias úteis)</h3>
+                        <p class="text-zinc-400 leading-relaxed">Conecto a sua conta da Meta Ads, fazendo a comunicação da dashboard diretamente com seus anúncios para otimização precisa. Não mexo nos seus anúncios. Você continua rodando do mesmo jeito.</p>
+                    </div>
+                    <div>
+                        <div class="text-6xl font-light text-zinc-800 mb-6">02</div>
+                        <h3 class="text-xl text-white font-medium mb-3">Treinamento (30min)</h3>
+                        <p class="text-zinc-400 leading-relaxed">Chamada com sua secretária. Ela vai usar todo dia, então tem que ser mais fácil que papel. E é.</p>
+                    </div>
+                    <div>
+                        <div class="text-6xl font-light text-zinc-800 mb-6">03</div>
+                        <h3 class="text-xl text-white font-medium mb-3">Você vê (todo dia)</h3>
+                        <p class="text-zinc-400 leading-relaxed">Dashboard simples: quantos leads chegaram, quantos foram qualificados e quantos realmente pagaram. Visão clara da conversão da sua equipe.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Para quem -->
+        <section class="border-y border-white/5 py-24 bg-zinc-950/50">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="grid lg:grid-cols-2 gap-12">
+                    <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-950/10 p-8 md:p-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-emerald-400"><path d="M5 12l5 5l10 -10"/></svg>
+                            </div>
+                            <h3 class="text-xl font-medium text-white">Feito pra você se</h3>
+                        </div>
+                        <ul class="space-y-4 text-zinc-300">
+                            <li class="flex gap-3"><span class="text-emerald-400 mt-1">•</span><span>Vende serviços de alto valor e investe R$ 2.000+/mês em Meta Ads</span></li>
+                            <li class="flex gap-3"><span class="text-emerald-400 mt-1">•</span><span>Tem secretária/recepcionista que atende WhatsApp</span></li>
+                            <li class="flex gap-3"><span class="text-emerald-400 mt-1">•</span><span>Quer saber ROI real por campanha, não CTR</span></li>
+                            <li class="flex gap-3"><span class="text-emerald-400 mt-1">•</span><span>Topa marcar no sistema quem pagou (30s por paciente)</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="rounded-[28px] border border-white/10 bg-black p-8 md:p-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-zinc-500"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </div>
+                            <h3 class="text-xl font-medium text-white">Não é pra você se</h3>
+                        </div>
+                        <ul class="space-y-4 text-zinc-400">
+                            <li class="flex gap-3"><span class="text-zinc-600 mt-1">•</span><span>Quer "bot mágico" que vende sozinho</span></li>
+                            <li class="flex gap-3"><span class="text-zinc-600 mt-1">•</span><span>Não investe em tráfego ainda</span></li>
+                            <li class="flex gap-3"><span class="text-zinc-600 mt-1">•</span><span>Acha que equipe não vai usar nada novo</span></li>
+                            <li class="flex gap-3"><span class="text-zinc-600 mt-1">•</span><span>Quer promessa de 10x ROI em 7 dias</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Preços -->
+        <section class="py-24 md:py-32">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="max-w-2xl mx-auto text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-semibold text-white">Simples e direto</h2>
+                    <p class="mt-3 text-zinc-400">Escolha como quer começar</p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                    <!-- Sistema -->
+                    <div class="rounded-[32px] border border-white/10 bg-zinc-950 p-8 md:p-10 flex flex-col">
+                        <div class="mb-8">
+                            <h3 class="text-2xl font-semibold text-white mb-2">SISTEMA</h3>
+                            <p class="text-zinc-500 text-sm">Você roda os anúncios, eu dou a visão</p>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-semibold text-white">R$1.997</span>
+                                <span class="text-zinc-500">setup</span>
+                            </div>
+                            <div class="text-zinc-400 mt-1">+ R$297/mês</div>
+                        </div>
+
+                        <ul class="space-y-3 text-[15px] text-zinc-300 mb-10 flex-1">
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>CRM Kanban (Novo → Falou → Agendou → Pagou)</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Rastreamento do anúncio até o pagamento</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Dashboard: qual campanha trouxe dinheiro</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Instalação completa em 3 dias úteis</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Treinamento 30min com sua secretária</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500 mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Suporte direto comigo no WhatsApp</span></li>
+                        </ul>
+
+                        <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20RASTRO%20-%20SISTEMA" class="w-full py-4 rounded-2xl border border-white/15 text-white font-medium hover:bg-white/5 transition text-center">
+                            Quero só o Sistema
+                        </a>
+                    </div>
+
+                    <!-- Sistema + Gestão -->
+                    <div class="relative rounded-[32px] border border-white/20 bg-white text-black p-8 md:p-10 flex flex-col shadow-[0_0_80px_rgba(255,255,255,0.07)]">
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+                            <div class="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium border border-white/20">MAIS ESCOLHIDO</div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h3 class="text-2xl font-semibold mb-2">SISTEMA + GESTÃO</h3>
+                            <p class="text-zinc-600 text-sm">Eu cuido de tudo, você só atende</p>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-semibold">R$1.997</span>
+                                <span class="text-zinc-600">setup</span>
+                            </div>
+                            <div class="text-zinc-700 mt-1">+ R$1.297/mês</div>
+                        </div>
+
+                        <ul class="space-y-3 text-[15px] text-zinc-800 mb-6 flex-1">
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span><strong>Tudo do Sistema</strong> incluso</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Eu assumo seus anúncios no Meta</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Otimização semanal baseada em quem PAGOU</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Relatório mensal de lucro por campanha</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>1 call de estratégia por mês</span></li>
+                            <li class="flex gap-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-black mt-0.5 shrink-0"><path d="M5 12l5 5l10 -10"/></svg><span>Máximo 5 clientes (vagas limitadas)</span></li>
+                        </ul>
+
+                        <div class="bg-zinc-100 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-600 mb-6">
+                            Ideal se você já investe R$3k+/mês e quer alguém olhando dado de pagamento, não de clique.
+                        </div>
+
+                        <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20RASTRO%20-%20SISTEMA%20%2B%20GEST%C3%83O" class="w-full py-4 rounded-2xl bg-black text-white font-medium hover:bg-zinc-800 transition text-center">
+                            Quero Sistema + Gestão
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transparência -->
+        <section class="border-t border-white/5 py-24">
+            <div class="max-w-3xl mx-auto px-6 text-center">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 mb-6">
+                    <span class="text-xs text-zinc-400 uppercase tracking-widest">Transparência total</span>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-semibold text-white leading-tight">Não tenho 50 cases. Acabei de lançar.</h2>
+                <div class="mt-8 space-y-4 text-zinc-400 leading-relaxed text-lg">
+                    <p>Criei o RASTRO porque eu mesmo precisava disso na minha operação. Cansado de ver relatório bonito de agência sem saber qual anúncio pagou a conta.</p>
+                    <p>Não vou te prometer 100 leads por dia. O que eu prometo é: em 30 dias você vai parar de jogar dinheiro no escuro. Você vai saber exatamente qual campanha trouxe cada paciente que pagou.</p>
+                    <p class="text-zinc-300">Se não fizer sentido, você cancela. Simples assim.</p>
+                </div>
+                <div class="mt-10">
+                    <p class="text-white font-medium">— Bruno Belegante</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Final -->
+        <section class="border-t border-white/5 py-20">
+            <div class="max-w-4xl mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-5xl font-semibold text-white tracking-tight">Pronto pra saber de onde vem seu dinheiro?</h2>
+                <p class="mt-4 text-zinc-400 text-lg">Me chama no WhatsApp. Te mostro em 5 minutos como fica.</p>
+                <div class="mt-10">
+                    <a href="https://wa.me/5551999999999?text=Ol%C3%A1%20Bruno%2C%20quero%20implementar%20o%20RASTRO%20agora" class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-black font-medium hover:bg-zinc-200 transition">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        Falar com o Bruno agora
+                    </a>
+                </div>
+                <p class="mt-6 text-sm text-zinc-600">Respondo eu mesmo. Sem robô, sem vendedor.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-10">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-zinc-500 flex items-center gap-2">
+                    © 2026
+                    <img src="./logoRastroBranca.svg" alt="RASTRO" class="h-3.5 w-auto">
+                    • Bruno Belegante
+                </span>
+            </div>
+            <div class="text-xs text-zinc-600">
+                Feito para empresas e profissionais que levam marketing a sério.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Suave scroll e micro-interações
+        document.querySelectorAll('a[href^="#"]').forEach(a=>{
+            a.addEventListener('click', e=>{
+                e.preventDefault();
+                document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+            })
+        });
+
+        // Kanban Animation Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const card = document.getElementById('anim-card');
+            const cursor = document.getElementById('anim-cursor');
+            const cursorPointer = document.getElementById('cursor-pointer');
+            const cursorGrab = document.getElementById('cursor-grab');
+            const colPagou = document.getElementById('col-pagou');
+            const colPagouWrapper = document.getElementById('col-pagou-wrapper');
+            const animBadge = document.getElementById('anim-badge');
+            const container = document.getElementById('kanban-container');
+            
+            if(!card || !cursor || !colPagou) return;
+
+            if(window.innerWidth < 768) return;
+            
+            // Create the overlay clone
+            const clone = card.cloneNode(true);
+            clone.id = 'anim-card-clone';
+            clone.style.position = 'absolute';
+            clone.style.zIndex = '30';
+            clone.style.pointerEvents = 'none';
+            clone.style.opacity = '0';
+            clone.style.transition = 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s, opacity 0.2s';
+            container.appendChild(clone);
+
+            function reset() {
+                // Reset clone
+                clone.style.transition = 'opacity 0.2s';
+                clone.style.opacity = '0';
+                clone.style.boxShadow = 'none';
+                
+                // Reset original card
+                card.style.opacity = '1';
+                card.classList.remove('ring-2', 'ring-white/10', 'scale-[0.98]');
+                
+                const existingPlaceholder = document.getElementById('anim-placeholder');
+                if(existingPlaceholder) existingPlaceholder.remove();
+                
+                // Reset new elements
+                const confirmCard = document.getElementById('anim-confirm-card');
+                const finalCard = document.getElementById('anim-final-card');
+                const typingValue = document.getElementById('anim-typing-value');
+                if (confirmCard) confirmCard.style.opacity = '0';
+                if (finalCard) finalCard.style.opacity = '0';
+                if (typingValue) typingValue.textContent = '';
+                
+                // Reset cursor
+                cursor.style.transition = 'opacity 0.3s';
+                cursor.style.opacity = '0';
+                
+                // Reset column
+                colPagou.classList.remove('bg-white/[0.03]', 'border-white/[0.15]');
+                colPagouWrapper.classList.remove('bg-emerald-900/40', 'border-emerald-400/50', 'ring-emerald-400/30');
+                colPagouWrapper.classList.add('bg-black/60', 'border-emerald-500/20', 'ring-emerald-500/10');
+                
+                animBadge.style.opacity = '0';
+                animBadge.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                    cursorPointer.classList.remove('hidden');
+                    cursorGrab.classList.add('hidden');
+                    setTimeout(runSequence, 1000);
+                }, 300);
+            }
+
+            async function runSequence() {
+                await new Promise(r => setTimeout(r, 500));
+                
+                const cardRect = card.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                
+                // Set clone initial position exactly over the original card
+                const initialLeft = cardRect.left - containerRect.left;
+                const initialTop = cardRect.top - containerRect.top;
+                clone.style.width = cardRect.width + 'px';
+                clone.style.height = cardRect.height + 'px';
+                clone.style.left = initialLeft + 'px';
+                clone.style.top = initialTop + 'px';
+                clone.style.transform = `translate(0px, 0px) scale(1) rotate(0deg)`;
+                
+                const startX = initialLeft + cardRect.width - 20;
+                const startY = initialTop + cardRect.height - 20;
+                
+                const grabX = initialLeft + (cardRect.width / 2);
+                const grabY = initialTop + (cardRect.height / 2);
+                
+                cursor.style.transition = 'none';
+                cursor.style.transform = `translate(${startX}px, ${startY}px)`;
+                
+                await new Promise(r => setTimeout(r, 50));
+                
+                // Move cursor to card
+                cursor.style.transition = 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s';
+                cursor.style.opacity = '1';
+                cursor.style.transform = `translate(${grabX}px, ${grabY}px)`;
+                
+                await new Promise(r => setTimeout(r, 800));
+                
+                // Grab!
+                cursorPointer.classList.add('hidden');
+                cursorGrab.classList.remove('hidden');
+                
+                // Make original card look like dnd-kit dragging
+                card.style.transition = 'all 0.2s';
+                card.classList.add('opacity-50', 'scale-[0.98]', 'ring-2', 'ring-white/10');
+                
+                // Make clone visible and lifted
+                clone.style.opacity = '1';
+                clone.style.transition = 'transform 0.15s, box-shadow 0.15s';
+                
+                await new Promise(r => setTimeout(r, 50));
+                clone.style.transform = `translate(0px, -5px) scale(1.02) rotate(-2deg)`;
+                clone.style.boxShadow = '0 15px 30px -5px rgba(0,0,0,0.6)';
+                
+                await new Promise(r => setTimeout(r, 300));
+                
+                // Create a placeholder to expand the column gracefully
+                const placeholder = document.createElement('div');
+                placeholder.id = 'anim-placeholder';
+                placeholder.className = 'rounded-xl border border-dashed border-white/20 transition-all duration-300';
+                placeholder.style.height = '0px';
+                colPagou.appendChild(placeholder);
+                
+                // Magnetic effect mid-air (expand placeholder)
+                setTimeout(() => {
+                    colPagou.classList.add('bg-white/[0.03]', 'border-white/[0.15]');
+                    placeholder.style.height = cardRect.height + 'px';
+                }, 100);
+                
+                // Wait for placeholder to expand so we can get its coordinates
+                await new Promise(r => setTimeout(r, 350));
+                
+                const placeholderRect = placeholder.getBoundingClientRect();
+                const curContainerRect = container.getBoundingClientRect();
+                const dropLeft = placeholderRect.left - curContainerRect.left;
+                const dropTop = placeholderRect.top - curContainerRect.top;
+                
+                const moveDeltaX = dropLeft - initialLeft;
+                const moveDeltaY = dropTop - initialTop;
+                
+                // Dragging to target
+                cursor.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+                cursor.style.transform = `translate(${grabX + moveDeltaX}px, ${grabY + moveDeltaY}px)`;
+                
+                clone.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s';
+                clone.style.transform = `translate(${moveDeltaX}px, ${moveDeltaY}px) scale(1.02) rotate(2deg)`;
+                
+                await new Promise(r => setTimeout(r, 550));
+                
+                // Drop!
+                cursorPointer.classList.remove('hidden');
+                cursorGrab.classList.add('hidden');
+                
+                clone.style.transition = 'transform 0.2s, box-shadow 0.2s';
+                clone.style.transform = `translate(${moveDeltaX}px, ${moveDeltaY}px) scale(1) rotate(0deg)`;
+                clone.style.boxShadow = 'none';
+                
+                card.style.opacity = '0'; // Hide original
+                
+                // Simulate KanbanCardConfirm flow
+                await new Promise(r => setTimeout(r, 200));
+
+                const confirmCard = document.getElementById('anim-confirm-card');
+                const finalCard = document.getElementById('anim-final-card');
+                const btnConfirm = document.getElementById('anim-btn-confirmar');
+                const typingValue = document.getElementById('anim-typing-value');
+                const typingCursor = document.getElementById('anim-typing-cursor');
+
+                clone.style.opacity = '0';
+                
+                confirmCard.style.left = dropLeft + 'px';
+                confirmCard.style.top = dropTop + 'px';
+                confirmCard.style.width = cardRect.width + 'px';
+                confirmCard.style.opacity = '1';
+
+                // Move cursor to pretend looking at the card
+                cursor.style.transition = 'transform 0.5s';
+                cursor.style.transform = `translate(${grabX + moveDeltaX + 40}px, ${grabY + moveDeltaY + 60}px)`;
+
+                await new Promise(r => setTimeout(r, 600));
+
+                // Type the value
+                typingCursor.classList.remove('opacity-0');
+                const amount = "1500";
+                for (let i = 0; i < amount.length; i++) {
+                    typingValue.textContent += amount[i];
+                    await new Promise(r => setTimeout(r, 150));
+                }
+                typingCursor.classList.add('opacity-0');
+
+                await new Promise(r => setTimeout(r, 300));
+
+                // Move cursor to "Confirmar" button
+                const btnRect = btnConfirm.getBoundingClientRect();
+                const curContainerRect2 = container.getBoundingClientRect();
+                const btnX = btnRect.left + (btnRect.width / 2) - curContainerRect2.left;
+                const btnY = btnRect.top + (btnRect.height / 2) - curContainerRect2.top;
+
+                cursor.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+                cursor.style.transform = `translate(${btnX}px, ${btnY}px)`;
+
+                await new Promise(r => setTimeout(r, 500));
+
+                // Click!
+                btnConfirm.style.transform = 'scale(0.95)';
+                await new Promise(r => setTimeout(r, 100));
+                btnConfirm.style.transform = 'scale(1)';
+
+                await new Promise(r => setTimeout(r, 200));
+
+                // Swap confirm card to final success card
+                confirmCard.style.opacity = '0';
+                
+                finalCard.style.left = confirmCard.style.left;
+                finalCard.style.top = confirmCard.style.top;
+                finalCard.style.width = cardRect.width + 'px';
+                finalCard.style.opacity = '1';
+
+                // Cursor leaves
+                cursor.style.transition = 'opacity 0.3s, transform 0.5s';
+                cursor.style.transform = `translate(${btnX + 30}px, ${btnY + 30}px)`;
+                cursor.style.opacity = '0';
+                
+                await new Promise(r => setTimeout(r, 200));
+                
+                // Success State (Column glow & badge)
+                colPagouWrapper.classList.remove('bg-black/60', 'border-emerald-500/20', 'ring-emerald-500/10');
+                colPagouWrapper.classList.add('bg-emerald-900/40', 'border-emerald-400/50', 'ring-emerald-400/30');
+                
+                animBadge.style.opacity = '1';
+                animBadge.style.transform = 'scale(1)';
+                
+                await new Promise(r => setTimeout(r, 3500));
+                reset();
+            }
+            
+            setTimeout(runSequence, 1500);
+            
+            window.addEventListener('resize', () => {
+                if(window.innerWidth < 768) {
+                    clone.style.opacity = '0';
+                    cursor.style.opacity = '0';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

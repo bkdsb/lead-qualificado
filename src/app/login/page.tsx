@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -47,9 +48,7 @@ export default function LoginPage() {
         className="relative w-full max-w-[380px] px-8"
       >
         <div className="mb-10">
-          <h1 className="text-xl font-semibold text-slate-10 tracking-[-0.02em]">
-            Lead Qualificado
-          </h1>
+          <Image src="/logoRastroBranca.svg" alt="Rastro" width={180} height={52} className="h-6 w-auto object-contain" />
           <p className="text-[13px] text-slate-7 mt-1.5">
             Gestão de Leads & Meta CAPI
           </p>

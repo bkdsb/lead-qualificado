@@ -3,7 +3,7 @@ import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Lead Qualificado — Gestão & CAPI',
+  title: 'RASTRO — Gestão & CAPI',
   description: 'Sistema de gestão de leads com integração Meta Conversions API',
 };
 
