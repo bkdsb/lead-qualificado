@@ -257,7 +257,7 @@ export default function SettingsClient({
   const isTestMode = testModeEnabled?.value === true || testModeEnabled?.value === 'true';
 
   return (
-    <div className="p-4 md:p-8 space-y-6 animate-fade-in">
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-8 space-y-6 animate-fade-in">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-white">Configurações</h1>
         <p className="text-[13px] text-slate-7 mt-0.5">Controles globais do sistema e conexão Meta.</p>
@@ -421,9 +421,9 @@ export default function SettingsClient({
         </CardHeader>
         <CardContent className="p-4 space-y-5">
           <section className="space-y-2.5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
               <div className="text-sm font-medium text-slate-9">Email da conta</div>
-              <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentEmail || '—'}>
+              <div className="text-xs text-slate-6 break-all" title={currentEmail || '—'}>
                 {currentEmail || '—'}
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function SettingsClient({
           <div className="h-px bg-white/[0.06]" />
 
           <section className="space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
+            <div className="space-y-1">
               <div className="text-sm font-medium text-slate-9">Senha</div>
               <div className="text-[11px] text-slate-6">Mínimo 8 caracteres</div>
             </div>
