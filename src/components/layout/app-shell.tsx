@@ -79,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Topbar */}
       <div className={cn("md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-slate-1/80 backdrop-blur-xl", isTest && "top-6")}>
-        <Image src="/logoRastroBranca.svg" alt="Rastro" width={234} height={68} className="h-[26px] w-auto object-contain" />
+        <Image src="/logoRastroBranca.svg" alt="Rastro" width={351} height={102} className="h-[39px] w-auto object-contain" />
         <button className="p-2 text-slate-7 rounded-md active:bg-white/[0.04]" onClick={() => setIsMobileMenuOpen(true)}>
           <Menu className="w-5 h-5" />
         </button>
@@ -105,7 +105,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         isTest && "top-6 h-[calc(100vh-24px)]"
       )}>
         <div className="flex items-center px-5 py-4 border-b border-white/[0.04]">
-          <Image src="/logoRastroBranca.svg" alt="Rastro" width={234} height={68} className="h-[26px] w-auto object-contain" />
+          <Image src="/logoRastroBranca.svg" alt="Rastro" width={351} height={102} className="h-[39px] w-auto object-contain" />
         </div>
 
         <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto">
@@ -148,7 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
-              <Image src="/logoRastroBranca.svg" alt="Rastro" width={234} height={68} className="h-[26px] w-auto object-contain" />
+              <Image src="/logoRastroBranca.svg" alt="Rastro" width={351} height={102} className="h-[39px] w-auto object-contain" />
               <button className="p-1 text-slate-7" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="w-4 h-4" />
               </button>
@@ -183,7 +183,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={cn("flex-1 min-w-0 flex flex-col md:ml-[240px]", "pt-[52px] md:pt-0", isTest && "pt-[76px] md:pt-6")}>
+      <main className={cn("flex-1 min-w-0 flex flex-col md:ml-[240px]", "pt-[66px] md:pt-0", isTest && "pt-[90px] md:pt-6")}>
         {children}
       </main>
     </div>
