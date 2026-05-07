@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getClientEnv } from '@/lib/config/env';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -12,19 +13,23 @@ type AuthView = 'login' | 'forgot' | 'reset';
 type PendingAction = 'login' | 'forgot' | 'reset' | null;
 
 function normalizeAuthError(message: string): string {
-  if (message === 'Invalid login credentials') return 'Email ou senha inválidos.';
-  if (message.toLowerCase().includes('email')) return 'Confira o email informado.';
-  if (message.toLowerCase().includes('password')) return 'Confira a senha informada.';
-  return message;
+  const raw = message?.trim() || 'Falha na autenticação.';
+  if (raw === 'Invalid login credentials') return 'Email ou senha inválidos.';
+  if (/email rate limit/i.test(raw)) return 'Limite de envio de emails atingido. Tente novamente em alguns minutos.';
+  if (/smtp|send.*email/i.test(raw)) return `Falha no envio de email do Supabase: ${raw}`;
+  if (/redirect/i.test(raw) && /not allowed|invalid/i.test(raw)) {
+    return 'URL de redirecionamento não autorizada no Supabase Auth.';
+  }
+  return raw;
 }
 
 function getResetRedirectUrl(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/login`;
+  }
   const appUrl = getClientEnv().NEXT_PUBLIC_APP_URL;
   if (appUrl && appUrl.trim().length > 0) {
     return `${appUrl.replace(/\/$/, '')}/login`;
-  }
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/login`;
   }
   return 'http://localhost:3000/login';
 }
@@ -93,12 +98,16 @@ export default function LoginPage() {
     setPendingAction('forgot');
 
     const supabase = createClient();
+    const redirectTo = getResetRedirectUrl();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getResetRedirectUrl(),
+      redirectTo,
     });
 
     if (resetError) {
       setError(normalizeAuthError(resetError.message));
+      if (/redirect/i.test(resetError.message)) {
+        setMessage(`Redirect usado: ${redirectTo}. Configure esse domínio no Supabase Auth.`);
+      }
       setPendingAction(null);
       return;
     }
@@ -193,21 +202,30 @@ export default function LoginPage() {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPassword(value);
+                    if (!value) setShowPassword(false);
+                  }}
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className={cn(
+                    'w-full h-10 px-3 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]',
+                    password ? 'pr-12' : '',
+                  )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                {password.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -280,21 +298,30 @@ export default function LoginPage() {
                   id="new-password"
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNewPassword(value);
+                    if (!value) setShowNewPassword(false);
+                  }}
                   placeholder="Mínimo 8 caracteres"
                   required
                   autoComplete="new-password"
-                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className={cn(
+                    'w-full h-10 px-3 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]',
+                    newPassword ? 'pr-12' : '',
+                  )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(v => !v)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                  aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                {newPassword.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(v => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                    aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -307,21 +334,30 @@ export default function LoginPage() {
                   id="confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setConfirmPassword(value);
+                    if (!value) setShowConfirmPassword(false);
+                  }}
                   placeholder="Repita a nova senha"
                   required
                   autoComplete="new-password"
-                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className={cn(
+                    'w-full h-10 px-3 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]',
+                    confirmPassword ? 'pr-12' : '',
+                  )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(v => !v)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                {confirmPassword.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(v => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                    aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
               </div>
             </div>
 

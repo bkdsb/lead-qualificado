@@ -29,19 +29,25 @@ interface CredentialRef {
 }
 
 function normalizeAuthError(message: string): string {
-  if (message === 'Invalid login credentials') return 'Senha atual inválida.';
-  if (message.toLowerCase().includes('email')) return 'Confira o email informado.';
-  if (message.toLowerCase().includes('password')) return 'Confira os dados de senha.';
-  return message;
+  const raw = message?.trim() || 'Falha na autenticação.';
+
+  if (raw === 'Invalid login credentials') return 'Senha atual inválida.';
+  if (/email rate limit/i.test(raw)) return 'Limite de envio de emails atingido. Tente novamente em alguns minutos.';
+  if (/smtp|send.*email/i.test(raw)) return `Falha no envio de email do Supabase: ${raw}`;
+  if (/redirect/i.test(raw) && /not allowed|invalid/i.test(raw)) {
+    return 'URL de redirecionamento não autorizada no Supabase Auth.';
+  }
+
+  return raw;
 }
 
 function getResetRedirectUrl(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/login`;
+  }
   const appUrl = getClientEnv().NEXT_PUBLIC_APP_URL;
   if (appUrl && appUrl.trim().length > 0) {
     return `${appUrl.replace(/\/$/, '')}/login`;
-  }
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/login`;
   }
   return 'http://localhost:3000/login';
 }
@@ -147,7 +153,7 @@ export default function SettingsClient({
         return;
       }
 
-      toast.success('Solicitação enviada. Confirme o novo email na sua caixa de entrada.');
+      toast.success('Solicitação enviada. Confirme o novo email na sua caixa de entrada e também no spam.');
       setConfirmAction(null);
     } finally {
       setAccountSaving(null);
@@ -197,6 +203,9 @@ export default function SettingsClient({
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
       toast.success('Senha atualizada com sucesso.');
       setConfirmAction(null);
     } finally {
@@ -216,16 +225,20 @@ export default function SettingsClient({
     setAccountSaving('recovery');
     try {
       const supabase = createClient();
+      const redirectTo = getResetRedirectUrl();
       const { error } = await supabase.auth.resetPasswordForEmail(currentUserEmail, {
-        redirectTo: getResetRedirectUrl(),
+        redirectTo,
       });
 
       if (error) {
         toast.error(normalizeAuthError(error.message));
+        if (/redirect/i.test(error.message)) {
+          toast.error(`Redirect usado: ${redirectTo}. Adicione esse domínio no Supabase Auth > URL Configuration.`);
+        }
         return;
       }
 
-      toast.success('Link de recuperação enviado para seu email.');
+      toast.success('Link de recuperação enviado para seu email. Verifique também spam/lixo eletrônico.');
       setConfirmAction(null);
     } finally {
       setAccountSaving(null);
@@ -242,9 +255,7 @@ export default function SettingsClient({
         <p className="text-[13px] text-slate-7 mt-0.5">Controles globais do sistema e conexão Meta.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-        {/* CAPI Connection */}
-        <Card className="h-full">
+      <Card>
         <CardHeader className="p-4 pb-3 border-b border-white/[0.04] flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-slate-6" />
@@ -257,16 +268,17 @@ export default function SettingsClient({
         <CardContent className="p-4 space-y-4">
           {capiStatus && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-              <div className={cn(
-                "p-3 rounded-md border text-[13px] font-medium",
-                capiStatus.success ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-              )}>
-                {capiStatus.success ? '✓ Conexão com o Facebook Ativa' : `✕ Erro: ${capiStatus.error}`}
+              <div
+                className={cn(
+                  'p-3 rounded-md border text-[13px] font-medium',
+                  capiStatus.success ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400',
+                )}
+              >
+                {capiStatus.success ? '✓ Conexão com o Facebook Ativa' : `✕ Erro: ${String(capiStatus.error || 'desconhecido')}`}
               </div>
             </motion.div>
           )}
 
-          {/* Test Mode Toggle */}
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-slate-9">Modo de Teste</div>
@@ -275,12 +287,16 @@ export default function SettingsClient({
             <Button
               onClick={requestToggleTestMode}
               disabled={saving === 'test_mode_enabled'}
-              className={cn("w-28 h-8", isTestMode ? "bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border-none" : "")}
+              className={cn('w-28 h-8', isTestMode ? 'bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border-none' : '')}
             >
               {isTestMode ? (
-                <><Play className="w-3.5 h-3.5 mr-1.5" /> Teste</>
+                <>
+                  <Play className="w-3.5 h-3.5 mr-1.5" /> Teste
+                </>
               ) : (
-                <><ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Produção</>
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Produção
+                </>
               )}
             </Button>
           </div>
@@ -291,33 +307,22 @@ export default function SettingsClient({
                 Confirmar troca para {pendingTestModeValue ? 'Modo de Teste' : 'Modo de Produção'}?
               </p>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-8"
-                  onClick={() => setPendingTestModeValue(null)}
-                >
+                <Button type="button" variant="secondary" className="h-8" onClick={() => setPendingTestModeValue(null)}>
                   Cancelar
                 </Button>
-                <Button
-                  type="button"
-                  className="h-8"
-                  onClick={toggleTestMode}
-                  disabled={saving === 'test_mode_enabled'}
-                >
+                <Button type="button" className="h-8" onClick={toggleTestMode} disabled={saving === 'test_mode_enabled'}>
                   {saving === 'test_mode_enabled' ? 'Salvando...' : 'Confirmar alteração'}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Credentials — Collapsible */}
           <div className="pt-3 border-t border-white/[0.04]">
             <button
               onClick={() => setShowCredentials(!showCredentials)}
               className="flex items-center gap-2 text-[12px] font-medium text-slate-7 hover:text-slate-9 transition-colors cursor-pointer w-full"
             >
-              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showCredentials && "rotate-180")} />
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showCredentials && 'rotate-180')} />
               Credenciais ({credentialRefs.length})
             </button>
             {showCredentials && (
@@ -334,192 +339,11 @@ export default function SettingsClient({
                   </div>
                 ))}
               </motion.div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Account Security */}
-        <Card className="h-full">
-          <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
-            <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-slate-6" />
-              <CardTitle>Conta & Segurança</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 space-y-5">
-            <section className="space-y-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-medium text-slate-9">Email da conta</div>
-                <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentUserEmail || '—'}>
-                  {currentUserEmail || '—'}
-                </div>
-              </div>
-              <form onSubmit={requestEmailUpdate} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => {
-                    setNewEmail(e.target.value);
-                    if (confirmAction === 'email') setConfirmAction(null);
-                  }}
-                  placeholder="novo@email.com"
-                  className="h-9"
-                  required
-                />
-                <Button type="submit" disabled={accountSaving !== null} className="h-9">
-                  Alterar email
-                </Button>
-              </form>
-              {confirmAction === 'email' && (
-                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
-                  <p className="text-[12px] text-amber-200">Confirmar alteração de email para {newEmail.trim()}?</p>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
-                      Cancelar
-                    </Button>
-                    <Button type="button" className="h-8" onClick={handleUpdateEmail} disabled={accountSaving !== null}>
-                      {accountSaving === 'email' ? 'Salvando...' : 'Confirmar alteração'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <div className="h-px bg-white/[0.06]" />
-
-            <section className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-slate-9">Senha</div>
-                <div className="text-[11px] text-slate-6">Mínimo 8 caracteres</div>
-              </div>
-              <form onSubmit={requestPasswordUpdate} className="space-y-2.5">
-                <div className="relative">
-                  <Input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      if (confirmAction === 'password') setConfirmAction(null);
-                    }}
-                    placeholder="Senha atual"
-                    autoComplete="current-password"
-                    className="h-9 pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(v => !v)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                    aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                    title={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  >
-                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="relative">
-                    <Input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value);
-                        if (confirmAction === 'password') setConfirmAction(null);
-                      }}
-                      placeholder="Nova senha"
-                      autoComplete="new-password"
-                      className="h-9 pr-12"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(v => !v)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                      aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                      title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (confirmAction === 'password') setConfirmAction(null);
-                      }}
-                      placeholder="Confirmar nova senha"
-                      autoComplete="new-password"
-                      className="h-9 pr-12"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(v => !v)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
-                      aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                      title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" disabled={accountSaving !== null} className="w-full h-9">
-                  Salvar nova senha
-                </Button>
-              </form>
-              {confirmAction === 'password' && (
-                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
-                  <p className="text-[12px] text-amber-200">Confirmar atualização da senha da conta?</p>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
-                      Cancelar
-                    </Button>
-                    <Button type="button" className="h-8" onClick={handleUpdatePassword} disabled={accountSaving !== null}>
-                      {accountSaving === 'password' ? 'Atualizando...' : 'Confirmar senha'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-3 space-y-2.5">
-              <div className="text-sm font-medium text-slate-9">Recuperação de acesso</div>
-              <p className="text-[12px] text-slate-6">Envia um link de redefinição para o email atual.</p>
-              {confirmAction === 'recovery' ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="button"
-                    className="h-8 gap-2"
-                    onClick={handleSendRecovery}
-                    disabled={accountSaving !== null}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    {accountSaving === 'recovery' ? 'Enviando...' : 'Confirmar envio'}
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full h-9 gap-2"
-                  onClick={requestRecovery}
-                  disabled={accountSaving !== null}
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Enviar link de recuperação
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Scoring — Readable */}
       <Card>
         <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
           <CardTitle>Pontuação de Lead</CardTitle>
@@ -529,7 +353,7 @@ export default function SettingsClient({
             {Object.entries(DEFAULT_SCORE_POINTS).map(([key, pts]) => (
               <div key={key} className="flex items-center justify-between px-4 py-2.5">
                 <span className="text-[13px] text-slate-8">{SCORE_EVENT_LABELS[key] || key}</span>
-                <span className={cn("text-[13px] font-mono font-medium", pts > 0 ? "text-green-400" : pts < 0 ? "text-red-400" : "text-slate-6")}>
+                <span className={cn('text-[13px] font-mono font-medium', pts > 0 ? 'text-green-400' : pts < 0 ? 'text-red-400' : 'text-slate-6')}>
                   {pts > 0 ? `+${pts}` : pts}
                 </span>
               </div>
@@ -538,13 +362,12 @@ export default function SettingsClient({
         </CardContent>
       </Card>
 
-      {/* Advanced — Collapsible */}
       <div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center gap-2 text-[12px] font-medium text-slate-6 hover:text-slate-9 transition-colors cursor-pointer"
         >
-          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdvanced && "rotate-180")} />
+          <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showAdvanced && 'rotate-180')} />
           Configurações avançadas
         </button>
         {showAdvanced && (
@@ -580,6 +403,196 @@ export default function SettingsClient({
           </motion.div>
         )}
       </div>
+
+      <Card>
+        <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
+          <div className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-slate-6" />
+            <CardTitle>Conta & Segurança</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 space-y-5">
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-slate-9">Email da conta</div>
+              <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentUserEmail || '—'}>
+                {currentUserEmail || '—'}
+              </div>
+            </div>
+            <form onSubmit={requestEmailUpdate} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => {
+                  setNewEmail(e.target.value);
+                  if (confirmAction === 'email') setConfirmAction(null);
+                }}
+                placeholder="novo@email.com"
+                className="h-9"
+                required
+              />
+              <Button type="submit" disabled={accountSaving !== null} className="h-9">
+                Alterar email
+              </Button>
+            </form>
+            {confirmAction === 'email' && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
+                <p className="text-[12px] text-amber-200">Confirmar alteração de email para {newEmail.trim()}?</p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                    Cancelar
+                  </Button>
+                  <Button type="button" className="h-8" onClick={handleUpdateEmail} disabled={accountSaving !== null}>
+                    {accountSaving === 'email' ? 'Salvando...' : 'Confirmar alteração'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="h-px bg-white/[0.06]" />
+
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-medium text-slate-9">Senha</div>
+              <div className="text-[11px] text-slate-6">Mínimo 8 caracteres</div>
+            </div>
+            <form onSubmit={requestPasswordUpdate} className="space-y-2.5">
+              <div className="relative">
+                <Input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCurrentPassword(value);
+                    if (!value) setShowCurrentPassword(false);
+                    if (confirmAction === 'password') setConfirmAction(null);
+                  }}
+                  placeholder="Senha atual"
+                  autoComplete="current-password"
+                  className={currentPassword ? 'h-9 pr-12' : 'h-9'}
+                  required
+                />
+                {currentPassword.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(v => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                    aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewPassword(value);
+                      if (!value) setShowNewPassword(false);
+                      if (confirmAction === 'password') setConfirmAction(null);
+                    }}
+                    placeholder="Nova senha"
+                    autoComplete="new-password"
+                    className={newPassword ? 'h-9 pr-12' : 'h-9'}
+                    required
+                  />
+                  {newPassword.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(v => !v)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                      aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setConfirmPassword(value);
+                      if (!value) setShowConfirmPassword(false);
+                      if (confirmAction === 'password') setConfirmAction(null);
+                    }}
+                    placeholder="Confirmar nova senha"
+                    autoComplete="new-password"
+                    className={confirmPassword ? 'h-9 pr-12' : 'h-9'}
+                    required
+                  />
+                  {confirmPassword.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(v => !v)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                      aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <Button type="submit" disabled={accountSaving !== null} className="w-full h-9">
+                Salvar nova senha
+              </Button>
+            </form>
+            {confirmAction === 'password' && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
+                <p className="text-[12px] text-amber-200">Confirmar atualização da senha da conta?</p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                    Cancelar
+                  </Button>
+                  <Button type="button" className="h-8" onClick={handleUpdatePassword} disabled={accountSaving !== null}>
+                    {accountSaving === 'password' ? 'Atualizando...' : 'Confirmar senha'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-3 space-y-2.5">
+            <div className="text-sm font-medium text-slate-9">Recuperação de acesso</div>
+            <p className="text-[12px] text-slate-6">Envia um link de redefinição para o email atual.</p>
+            {confirmAction === 'recovery' ? (
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  className="h-8 gap-2"
+                  onClick={handleSendRecovery}
+                  disabled={accountSaving !== null}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {accountSaving === 'recovery' ? 'Enviando...' : 'Confirmar envio'}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full h-9 gap-2"
+                onClick={requestRecovery}
+                disabled={accountSaving !== null}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Enviar link de recuperação
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
