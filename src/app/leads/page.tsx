@@ -8,8 +8,16 @@ export default async function LeadsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
+
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <LeadsClient />
     </AppShell>
   );

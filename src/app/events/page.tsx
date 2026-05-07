@@ -8,6 +8,14 @@ export default async function EventsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
+
   const { data: dispatches } = await supabase
     .from('meta_event_dispatches')
     .select('*, leads(name)')
@@ -15,7 +23,7 @@ export default async function EventsPage() {
     .limit(100);
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <div className="flex-1 flex flex-col min-w-0">
         <EventsClient dispatches={dispatches || []} />
       </div>

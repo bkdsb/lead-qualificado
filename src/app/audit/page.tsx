@@ -8,6 +8,14 @@ export default async function AuditPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
+
   const { data: logs } = await supabase
     .from('audit_logs')
     .select('*')
@@ -15,7 +23,7 @@ export default async function AuditPage() {
     .limit(100);
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <AuditClient logs={logs || []} />
     </AppShell>
   );

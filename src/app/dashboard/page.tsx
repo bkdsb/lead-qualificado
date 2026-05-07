@@ -13,6 +13,8 @@ export default async function DashboardPage() {
     .select('role')
     .eq('id', user.id)
     .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
 
   // Fetch dashboard stats
   const now = new Date();
@@ -55,7 +57,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <DashboardClient stats={stats} userRole={dbUser?.role === 'admin' ? 'admin' : 'operator'} />
     </AppShell>
   );

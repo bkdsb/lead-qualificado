@@ -8,6 +8,14 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
+
   const { data: settings } = await supabase
     .from('system_settings')
     .select('*')
@@ -19,7 +27,7 @@ export default async function SettingsPage() {
     .order('provider');
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <SettingsClient
         settings={settings || []}
         credentialRefs={credRefs || []}

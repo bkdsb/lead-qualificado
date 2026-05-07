@@ -18,16 +18,28 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Configurações', icon: Settings, adminOnly: true },
 ];
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({
+  children,
+  initialUserRole,
+}: {
+  children: React.ReactNode;
+  initialUserRole?: 'admin' | 'operator';
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'operator'>(() => {
+    if (initialUserRole) return initialUserRole;
     if (typeof window === 'undefined') return 'operator';
     return sessionStorage.getItem('user_role') === 'admin' ? 'admin' : 'operator';
   });
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV || 'local';
   const isTest = appEnv !== 'production';
+
+  useEffect(() => {
+    if (!initialUserRole || typeof window === 'undefined') return;
+    sessionStorage.setItem('user_role', initialUserRole);
+  }, [initialUserRole]);
 
   // Fetch user role once — cache in sessionStorage to prevent flash on navigation
   useEffect(() => {

@@ -16,11 +16,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     .eq('id', user.id)
     .single();
 
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
   const userRole = (dbUser?.role as 'admin' | 'operator') || 'operator';
   const userName = (dbUser?.name as string) || user.email?.split('@')[0] || 'Usuário';
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <LeadDetailClient leadId={id} userRole={userRole} userName={userName} />
     </AppShell>
   );

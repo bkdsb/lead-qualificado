@@ -8,6 +8,14 @@ export default async function QAPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  const initialUserRole =
+    dbUser?.role === 'admin' ? 'admin' : dbUser?.role === 'operator' ? 'operator' : undefined;
+
   // Fetch recent dispatches with signal info
   const { data: recentDispatches } = await supabase
     .from('meta_event_dispatches')
@@ -23,7 +31,7 @@ export default async function QAPage() {
     .limit(10);
 
   return (
-    <AppShell>
+    <AppShell initialUserRole={initialUserRole}>
       <QAClient
         dispatches={recentDispatches || []}
         dqSnapshots={dqSnapshots || []}

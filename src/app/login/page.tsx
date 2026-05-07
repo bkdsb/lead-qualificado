@@ -197,12 +197,12 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full h-10 px-3 pr-10 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
                   aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
@@ -284,12 +284,12 @@ export default function LoginPage() {
                   placeholder="Mínimo 8 caracteres"
                   required
                   autoComplete="new-password"
-                  className="w-full h-10 px-3 pr-10 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
                   aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
@@ -311,12 +311,12 @@ export default function LoginPage() {
                   placeholder="Repita a nova senha"
                   required
                   autoComplete="new-password"
-                  className="w-full h-10 px-3 pr-10 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
+                  className="w-full h-10 px-3 pr-12 bg-slate-2 border border-white/[0.08] rounded-md text-sm text-slate-10 placeholder:text-slate-6 outline-none transition-all duration-200 focus:border-white/20 focus:ring-2 focus:ring-white/[0.06]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
                   aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Activity, Play, ShieldCheck, ChevronDown, Mail, KeyRound, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { Activity, Play, ShieldCheck, ChevronDown, KeyRound, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
@@ -82,6 +82,8 @@ export default function SettingsClient({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [accountSaving, setAccountSaving] = useState<'email' | 'password' | 'recovery' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'email' | 'password' | 'recovery' | null>(null);
+  const [pendingTestModeValue, setPendingTestModeValue] = useState<boolean | null>(null);
 
   async function verifyCapiConnection() {
     setVerifying(true);
@@ -95,24 +97,31 @@ export default function SettingsClient({
     setVerifying(false);
   }
 
-  async function toggleTestMode() {
+  function requestToggleTestMode() {
     const current = settings.find(s => s.key === 'test_mode_enabled');
     const newValue = current?.value === true || current?.value === 'true' ? false : true;
+    setPendingTestModeValue(newValue);
+  }
+
+  async function toggleTestMode() {
+    if (pendingTestModeValue === null) return;
+
     setSaving('test_mode_enabled');
     const res = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'test_mode_enabled', value: newValue }),
+      body: JSON.stringify({ key: 'test_mode_enabled', value: pendingTestModeValue }),
     });
     setSaving(null);
     if (!res.ok) {
       toast.error('Falha ao alterar modo de teste');
       return;
     }
+    setPendingTestModeValue(null);
     window.location.reload();
   }
 
-  async function handleUpdateEmail(e: React.FormEvent) {
+  function requestEmailUpdate(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newEmail.trim();
 
@@ -120,7 +129,15 @@ export default function SettingsClient({
       toast.error('Informe um email válido.');
       return;
     }
+    if (trimmed === currentUserEmail) {
+      toast.error('Informe um email diferente do atual.');
+      return;
+    }
+    setConfirmAction('email');
+  }
 
+  async function handleUpdateEmail() {
+    const trimmed = newEmail.trim();
     setAccountSaving('email');
     try {
       const supabase = createClient();
@@ -131,12 +148,13 @@ export default function SettingsClient({
       }
 
       toast.success('Solicitação enviada. Confirme o novo email na sua caixa de entrada.');
+      setConfirmAction(null);
     } finally {
       setAccountSaving(null);
     }
   }
 
-  async function handleUpdatePassword(e: React.FormEvent) {
+  function requestPasswordUpdate(e: React.FormEvent) {
     e.preventDefault();
 
     if (!currentPassword.trim()) {
@@ -151,7 +169,10 @@ export default function SettingsClient({
       toast.error('As senhas não conferem.');
       return;
     }
+    setConfirmAction('password');
+  }
 
+  async function handleUpdatePassword() {
     setAccountSaving('password');
     try {
       const supabase = createClient();
@@ -177,17 +198,21 @@ export default function SettingsClient({
       setNewPassword('');
       setConfirmPassword('');
       toast.success('Senha atualizada com sucesso.');
+      setConfirmAction(null);
     } finally {
       setAccountSaving(null);
     }
   }
 
-  async function handleSendRecovery() {
+  function requestRecovery() {
     if (!currentUserEmail) {
       toast.error('Não foi possível identificar o email da conta atual.');
       return;
     }
+    setConfirmAction('recovery');
+  }
 
+  async function handleSendRecovery() {
     setAccountSaving('recovery');
     try {
       const supabase = createClient();
@@ -201,6 +226,7 @@ export default function SettingsClient({
       }
 
       toast.success('Link de recuperação enviado para seu email.');
+      setConfirmAction(null);
     } finally {
       setAccountSaving(null);
     }
@@ -216,9 +242,9 @@ export default function SettingsClient({
         <p className="text-[13px] text-slate-7 mt-0.5">Controles globais do sistema e conexão Meta.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         {/* CAPI Connection */}
-        <Card className="h-fit">
+        <Card className="h-full">
         <CardHeader className="p-4 pb-3 border-b border-white/[0.04] flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-slate-6" />
@@ -247,7 +273,7 @@ export default function SettingsClient({
               <div className="text-[12px] text-slate-6 mt-0.5">Eventos vão para o canal de teste da Meta.</div>
             </div>
             <Button
-              onClick={toggleTestMode}
+              onClick={requestToggleTestMode}
               disabled={saving === 'test_mode_enabled'}
               className={cn("w-28 h-8", isTestMode ? "bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border-none" : "")}
             >
@@ -258,6 +284,32 @@ export default function SettingsClient({
               )}
             </Button>
           </div>
+
+          {pendingTestModeValue !== null && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
+              <p className="text-[12px] text-amber-200">
+                Confirmar troca para {pendingTestModeValue ? 'Modo de Teste' : 'Modo de Produção'}?
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-8"
+                  onClick={() => setPendingTestModeValue(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  className="h-8"
+                  onClick={toggleTestMode}
+                  disabled={saving === 'test_mode_enabled'}
+                >
+                  {saving === 'test_mode_enabled' ? 'Salvando...' : 'Confirmar alteração'}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Credentials — Collapsible */}
           <div className="pt-3 border-t border-white/[0.04]">
@@ -288,7 +340,7 @@ export default function SettingsClient({
         </Card>
 
         {/* Account Security */}
-        <Card className="h-fit">
+        <Card className="h-full">
           <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-slate-6" />
@@ -296,107 +348,172 @@ export default function SettingsClient({
             </div>
           </CardHeader>
           <CardContent className="p-4 space-y-5">
-            <div className="p-3 rounded-md border border-white/[0.08] bg-slate-2/40">
-              <div className="text-[11px] uppercase tracking-widest text-slate-7 mb-1">Email atual</div>
-              <div className="text-sm text-slate-9 flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-slate-6" />
-                {currentUserEmail || '—'}
+            <section className="space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium text-slate-9">Email da conta</div>
+                <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentUserEmail || '—'}>
+                  {currentUserEmail || '—'}
+                </div>
               </div>
-            </div>
-
-            <form onSubmit={handleUpdateEmail} className="space-y-2.5">
-              <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Alterar email</label>
-              <div className="flex gap-2">
+              <form onSubmit={requestEmailUpdate} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <Input
                   type="email"
                   value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
+                  onChange={(e) => {
+                    setNewEmail(e.target.value);
+                    if (confirmAction === 'email') setConfirmAction(null);
+                  }}
                   placeholder="novo@email.com"
+                  className="h-9"
                   required
                 />
-                <Button type="submit" disabled={accountSaving !== null} className="shrink-0">
-                  {accountSaving === 'email' ? 'Salvando...' : 'Atualizar'}
+                <Button type="submit" disabled={accountSaving !== null} className="h-9">
+                  Alterar email
                 </Button>
-              </div>
-            </form>
+              </form>
+              {confirmAction === 'email' && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
+                  <p className="text-[12px] text-amber-200">Confirmar alteração de email para {newEmail.trim()}?</p>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                      Cancelar
+                    </Button>
+                    <Button type="button" className="h-8" onClick={handleUpdateEmail} disabled={accountSaving !== null}>
+                      {accountSaving === 'email' ? 'Salvando...' : 'Confirmar alteração'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
 
-            <form onSubmit={handleUpdatePassword} className="space-y-2.5 pt-2 border-t border-white/[0.04]">
-              <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Alterar senha</label>
-              <div className="relative">
-                <Input
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Senha atual"
-                  autoComplete="current-password"
-                  className="pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
-                  aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nova senha (mín. 8 caracteres)"
-                  autoComplete="new-password"
-                  className="pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
-                  aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirmar nova senha"
-                  autoComplete="new-password"
-                  className="pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
-                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <Button type="submit" disabled={accountSaving !== null} className="w-full">
-                {accountSaving === 'password' ? 'Atualizando senha...' : 'Salvar nova senha'}
-              </Button>
-            </form>
+            <div className="h-px bg-white/[0.06]" />
 
-            <div className="pt-2 border-t border-white/[0.04]">
-              <Button
-                variant="secondary"
-                className="w-full gap-2"
-                onClick={handleSendRecovery}
-                disabled={accountSaving !== null}
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                {accountSaving === 'recovery' ? 'Enviando recuperação...' : 'Enviar link de recuperação de senha'}
-              </Button>
+            <section className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium text-slate-9">Senha</div>
+                <div className="text-[11px] text-slate-6">Mínimo 8 caracteres</div>
+              </div>
+              <form onSubmit={requestPasswordUpdate} className="space-y-2.5">
+                <div className="relative">
+                  <Input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      if (confirmAction === 'password') setConfirmAction(null);
+                    }}
+                    placeholder="Senha atual"
+                    autoComplete="current-password"
+                    className="h-9 pr-12"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(v => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                    aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="relative">
+                    <Input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        if (confirmAction === 'password') setConfirmAction(null);
+                      }}
+                      placeholder="Nova senha"
+                      autoComplete="new-password"
+                      className="h-9 pr-12"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(v => !v)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                      aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (confirmAction === 'password') setConfirmAction(null);
+                      }}
+                      placeholder="Confirmar nova senha"
+                      autoComplete="new-password"
+                      className="h-9 pr-12"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(v => !v)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md border border-white/[0.24] bg-slate-2 text-slate-10 hover:text-white hover:bg-slate-3 transition-colors flex items-center justify-center z-10"
+                      aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" disabled={accountSaving !== null} className="w-full h-9">
+                  Salvar nova senha
+                </Button>
+              </form>
+              {confirmAction === 'password' && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-2">
+                  <p className="text-[12px] text-amber-200">Confirmar atualização da senha da conta?</p>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                      Cancelar
+                    </Button>
+                    <Button type="button" className="h-8" onClick={handleUpdatePassword} disabled={accountSaving !== null}>
+                      {accountSaving === 'password' ? 'Atualizando...' : 'Confirmar senha'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-3 space-y-2.5">
+              <div className="text-sm font-medium text-slate-9">Recuperação de acesso</div>
+              <p className="text-[12px] text-slate-6">Envia um link de redefinição para o email atual.</p>
+              {confirmAction === 'recovery' ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" className="h-8" onClick={() => setConfirmAction(null)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-8 gap-2"
+                    onClick={handleSendRecovery}
+                    disabled={accountSaving !== null}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    {accountSaving === 'recovery' ? 'Enviando...' : 'Confirmar envio'}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full h-9 gap-2"
+                  onClick={requestRecovery}
+                  disabled={accountSaving !== null}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Enviar link de recuperação
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
