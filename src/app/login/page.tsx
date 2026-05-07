@@ -47,7 +47,7 @@ export default function LoginPage() {
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[380px] px-8"
       >
-        <div className="mb-10">
+        <div className="mb-10 flex flex-col items-center text-center">
           <Image src="/logoRastroBranca.svg" alt="Rastro" width={180} height={52} className="h-6 w-auto object-contain" />
           <p className="text-[13px] text-slate-7 mt-1.5">
             Gestão de Leads & Meta CAPI
