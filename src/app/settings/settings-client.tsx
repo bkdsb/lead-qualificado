@@ -81,6 +81,7 @@ export default function SettingsClient({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [newEmail, setNewEmail] = useState(currentUserEmail);
+  const [currentEmail, setCurrentEmail] = useState(currentUserEmail);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -135,7 +136,7 @@ export default function SettingsClient({
       toast.error('Informe um email válido.');
       return;
     }
-    if (trimmed === currentUserEmail) {
+    if (trimmed === currentEmail) {
       toast.error('Informe um email diferente do atual.');
       return;
     }
@@ -146,14 +147,21 @@ export default function SettingsClient({
     const trimmed = newEmail.trim();
     setAccountSaving('email');
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ email: trimmed });
-      if (error) {
-        toast.error(normalizeAuthError(error.message));
+      const res = await fetch('/api/account/email', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(normalizeAuthError(data?.error || 'Falha ao alterar email.'));
         return;
       }
 
-      toast.success('Solicitação enviada. Confirme o novo email na sua caixa de entrada e também no spam.');
+      setCurrentEmail(data?.email || trimmed);
+      setNewEmail(data?.email || trimmed);
+      toast.success('Email alterado com sucesso.');
       setConfirmAction(null);
     } finally {
       setAccountSaving(null);
@@ -183,9 +191,9 @@ export default function SettingsClient({
     try {
       const supabase = createClient();
 
-      if (currentUserEmail) {
+      if (currentEmail) {
         const { error: checkError } = await supabase.auth.signInWithPassword({
-          email: currentUserEmail,
+          email: currentEmail,
           password: currentPassword,
         });
         if (checkError) {
@@ -214,7 +222,7 @@ export default function SettingsClient({
   }
 
   function requestRecovery() {
-    if (!currentUserEmail) {
+    if (!currentEmail) {
       toast.error('Não foi possível identificar o email da conta atual.');
       return;
     }
@@ -226,7 +234,7 @@ export default function SettingsClient({
     try {
       const supabase = createClient();
       const redirectTo = getResetRedirectUrl();
-      const { error } = await supabase.auth.resetPasswordForEmail(currentUserEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(currentEmail, {
         redirectTo,
       });
 
@@ -415,8 +423,8 @@ export default function SettingsClient({
           <section className="space-y-2.5">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-medium text-slate-9">Email da conta</div>
-              <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentUserEmail || '—'}>
-                {currentUserEmail || '—'}
+              <div className="text-xs text-slate-6 truncate max-w-[180px]" title={currentEmail || '—'}>
+                {currentEmail || '—'}
               </div>
             </div>
             <form onSubmit={requestEmailUpdate} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
