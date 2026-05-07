@@ -101,3 +101,60 @@ export async function PATCH(
 
   return NextResponse.json({ lead });
 }
+
+/**
+ * DELETE /api/leads/[id] — Delete a lead (admin only)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const admin = createAdminClient();
+
+  const { data: dbUser } = await admin
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (dbUser?.role !== 'admin') {
+    return NextResponse.json({ error: 'Permissão negada. Apenas administradores podem excluir leads.' }, { status: 403 });
+  }
+
+  const { data: existingLead, error: leadError } = await admin
+    .from('leads')
+    .select('id, name, stage, score')
+    .eq('id', id)
+    .single();
+
+  if (leadError || !existingLead) {
+    return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 });
+  }
+
+  const { error: deleteError } = await admin
+    .from('leads')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  await admin.from('audit_logs').insert({
+    entity_type: 'lead',
+    entity_id: id,
+    action: 'delete',
+    actor_id: user.id,
+    details: existingLead,
+  });
+
+  return NextResponse.json({
+    success: true,
+    deleted: existingLead,
+  });
+}

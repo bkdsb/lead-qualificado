@@ -4,10 +4,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Activity, Play, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Activity, Play, ShieldCheck, ChevronDown, Mail, KeyRound, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { createClient } from '@/lib/supabase/client';
+import { getClientEnv } from '@/lib/config/env';
 import { DEFAULT_SCORE_POINTS } from '@/lib/utils/constants';
+import { toast } from 'sonner';
 
 interface Setting {
   id: string;
@@ -22,6 +26,24 @@ interface CredentialRef {
   credential_type: string;
   env_var_name: string;
   status: string;
+}
+
+function normalizeAuthError(message: string): string {
+  if (message === 'Invalid login credentials') return 'Senha atual inválida.';
+  if (message.toLowerCase().includes('email')) return 'Confira o email informado.';
+  if (message.toLowerCase().includes('password')) return 'Confira os dados de senha.';
+  return message;
+}
+
+function getResetRedirectUrl(): string {
+  const appUrl = getClientEnv().NEXT_PUBLIC_APP_URL;
+  if (appUrl && appUrl.trim().length > 0) {
+    return `${appUrl.replace(/\/$/, '')}/login`;
+  }
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/login`;
+  }
+  return 'http://localhost:3000/login';
 }
 
 const SCORE_EVENT_LABELS: Record<string, string> = {
@@ -41,15 +63,25 @@ const SCORE_EVENT_LABELS: Record<string, string> = {
 export default function SettingsClient({
   settings,
   credentialRefs,
+  currentUserEmail,
 }: {
   settings: Setting[];
   credentialRefs: CredentialRef[];
+  currentUserEmail: string;
 }) {
   const [verifying, setVerifying] = useState(false);
   const [capiStatus, setCapiStatus] = useState<Record<string, unknown> | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [newEmail, setNewEmail] = useState(currentUserEmail);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [accountSaving, setAccountSaving] = useState<'email' | 'password' | 'recovery' | null>(null);
 
   async function verifyCapiConnection() {
     setVerifying(true);
@@ -74,11 +106,104 @@ export default function SettingsClient({
     });
     setSaving(null);
     if (!res.ok) {
-      const { toast } = await import('sonner');
       toast.error('Falha ao alterar modo de teste');
       return;
     }
     window.location.reload();
+  }
+
+  async function handleUpdateEmail(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newEmail.trim();
+
+    if (!trimmed) {
+      toast.error('Informe um email válido.');
+      return;
+    }
+
+    setAccountSaving('email');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ email: trimmed });
+      if (error) {
+        toast.error(normalizeAuthError(error.message));
+        return;
+      }
+
+      toast.success('Solicitação enviada. Confirme o novo email na sua caixa de entrada.');
+    } finally {
+      setAccountSaving(null);
+    }
+  }
+
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!currentPassword.trim()) {
+      toast.error('Informe sua senha atual para confirmar a alteração.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('A nova senha precisa ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não conferem.');
+      return;
+    }
+
+    setAccountSaving('password');
+    try {
+      const supabase = createClient();
+
+      if (currentUserEmail) {
+        const { error: checkError } = await supabase.auth.signInWithPassword({
+          email: currentUserEmail,
+          password: currentPassword,
+        });
+        if (checkError) {
+          toast.error(normalizeAuthError(checkError.message));
+          return;
+        }
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(normalizeAuthError(error.message));
+        return;
+      }
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Senha atualizada com sucesso.');
+    } finally {
+      setAccountSaving(null);
+    }
+  }
+
+  async function handleSendRecovery() {
+    if (!currentUserEmail) {
+      toast.error('Não foi possível identificar o email da conta atual.');
+      return;
+    }
+
+    setAccountSaving('recovery');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(currentUserEmail, {
+        redirectTo: getResetRedirectUrl(),
+      });
+
+      if (error) {
+        toast.error(normalizeAuthError(error.message));
+        return;
+      }
+
+      toast.success('Link de recuperação enviado para seu email.');
+    } finally {
+      setAccountSaving(null);
+    }
   }
 
   const testModeEnabled = settings.find(s => s.key === 'test_mode_enabled');
@@ -162,17 +287,116 @@ export default function SettingsClient({
           </CardContent>
         </Card>
 
-        {/* Lead Scoring (Placeholder/Future) */}
+        {/* Account Security */}
         <Card className="h-fit">
           <CardHeader className="p-4 pb-3 border-b border-white/[0.04]">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-6" />
-              <CardTitle>Lead Scoring & Regras</CardTitle>
+              <KeyRound className="w-4 h-4 text-slate-6" />
+              <CardTitle>Conta & Segurança</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-[13px] text-slate-6 bg-slate-2/50 border border-dashed border-white/[0.04] rounded-lg p-6 text-center">
-              A configuração de pontuação de Leads (Scoring) e Pacotes de Serviços estará disponível em breve.
+          <CardContent className="p-4 space-y-5">
+            <div className="p-3 rounded-md border border-white/[0.08] bg-slate-2/40">
+              <div className="text-[11px] uppercase tracking-widest text-slate-7 mb-1">Email atual</div>
+              <div className="text-sm text-slate-9 flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-slate-6" />
+                {currentUserEmail || '—'}
+              </div>
+            </div>
+
+            <form onSubmit={handleUpdateEmail} className="space-y-2.5">
+              <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Alterar email</label>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="novo@email.com"
+                  required
+                />
+                <Button type="submit" disabled={accountSaving !== null} className="shrink-0">
+                  {accountSaving === 'email' ? 'Salvando...' : 'Atualizar'}
+                </Button>
+              </div>
+            </form>
+
+            <form onSubmit={handleUpdatePassword} className="space-y-2.5 pt-2 border-t border-white/[0.04]">
+              <label className="text-[11px] uppercase tracking-widest font-medium text-slate-7">Alterar senha</label>
+              <div className="relative">
+                <Input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Senha atual"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(v => !v)}
+                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  title={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nova senha (mín. 8 caracteres)"
+                  autoComplete="new-password"
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(v => !v)}
+                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  title={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirmar nova senha"
+                  autoComplete="new-password"
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  className="absolute inset-y-0 right-0 px-3 text-slate-6 hover:text-slate-9 transition-colors"
+                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <Button type="submit" disabled={accountSaving !== null} className="w-full">
+                {accountSaving === 'password' ? 'Atualizando senha...' : 'Salvar nova senha'}
+              </Button>
+            </form>
+
+            <div className="pt-2 border-t border-white/[0.04]">
+              <Button
+                variant="secondary"
+                className="w-full gap-2"
+                onClick={handleSendRecovery}
+                disabled={accountSaving !== null}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {accountSaving === 'recovery' ? 'Enviando recuperação...' : 'Enviar link de recuperação de senha'}
+              </Button>
             </div>
           </CardContent>
         </Card>

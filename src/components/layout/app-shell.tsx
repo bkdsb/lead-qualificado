@@ -32,14 +32,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Fetch user role once — cache in sessionStorage to prevent flash on navigation
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase.from('users').select('role').eq('id', user.id).single().then(({ data }) => {
-          const role = data?.role === 'admin' ? 'admin' : 'operator';
-          setUserRole(role);
-          sessionStorage.setItem('user_role', role);
-        });
-      }
+    supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+      if (userError || !user) return;
+
+      supabase.from('users').select('role').eq('id', user.id).single().then(({ data, error: roleError }) => {
+        // Keep current role if fetch fails to avoid flashing admin controls away.
+        if (roleError || !data?.role) return;
+
+        const role = data.role === 'admin' ? 'admin' : 'operator';
+        setUserRole(role);
+        sessionStorage.setItem('user_role', role);
+      });
     });
   }, []);
 

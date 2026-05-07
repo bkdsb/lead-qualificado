@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip } from '@/components/ui/tooltip';
-import { ArrowRight, TrendingUp, TrendingDown, Users, Target, ShieldCheck, Zap, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, Users, Target, ShieldCheck, Zap, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { STAGE_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
 import type { LeadStage } from '@/types/database';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface RecentLead {
   id: string;
@@ -35,6 +37,8 @@ export interface DashboardStats {
   recentLeads: RecentLead[];
   lowPurchaseVolume: boolean;
 }
+
+type UserRole = 'admin' | 'operator';
 
 interface WeeklyDataPoint {
   week: string;
@@ -70,6 +74,12 @@ interface StatsData {
   };
 }
 
+interface TooltipEntry {
+  color?: string;
+  name?: string;
+  value?: number | string;
+}
+
 function DeltaBadge({ value, suffix = '' }: { value: number; suffix?: string }) {
   if (value === 0) return null;
   const isPositive = value > 0;
@@ -84,12 +94,20 @@ function DeltaBadge({ value, suffix = '' }: { value: number; suffix?: string }) 
   );
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+}) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-slate-2 border border-white/[0.08] rounded-lg px-3 py-2 shadow-popover text-[11px]">
       <div className="text-slate-7 font-mono mb-1">{label}</div>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
           <span className="text-slate-8">{p.name}: <strong className="text-white">{p.value}</strong></span>
@@ -99,9 +117,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function DashboardClient({ stats }: { stats: DashboardStats }) {
+export default function DashboardClient({
+  stats,
+  userRole = 'operator',
+}: {
+  stats: DashboardStats;
+  userRole?: UserRole;
+}) {
+  const router = useRouter();
   const [chartData, setChartData] = useState<StatsData | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
+  const [recentLeads, setRecentLeads] = useState<RecentLead[]>(stats.recentLeads);
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+  const isAdmin = userRole === 'admin';
 
   useEffect(() => {
     fetch('/api/leads/stats')
@@ -109,6 +137,29 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
       .then(data => { setChartData(data); setChartLoading(false); })
       .catch(() => setChartLoading(false));
   }, []);
+
+  async function handleDeleteLead(lead: RecentLead) {
+    const confirmed = window.confirm(`Excluir o lead "${lead.name || 'Sem nome'}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeletingLeadId(lead.id);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result?.error || 'Erro ao excluir lead');
+        return;
+      }
+
+      setRecentLeads(prev => prev.filter(l => l.id !== lead.id));
+      toast.success('Lead excluído com sucesso');
+    } catch {
+      toast.error('Erro de rede ao excluir lead');
+    } finally {
+      setDeletingLeadId(null);
+    }
+  }
 
   const metrics = [
     {
@@ -322,15 +373,15 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
           </Link>
         </div>
 
-        {stats.recentLeads.length === 0 ? (
+        {recentLeads.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-slate-7">Nenhum lead ainda.</div>
         ) : (
           <div className="divide-y divide-white/[0.03]">
-            {stats.recentLeads.map((l) => (
-              <Link
+            {recentLeads.map((l) => (
+              <div
                 key={l.id}
-                href={`/leads/${l.id}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-slate-2/50 transition-colors cursor-pointer group"
+                onClick={() => router.push(`/leads/${l.id}`)}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-md bg-slate-3 flex items-center justify-center text-[11px] font-bold text-slate-7 uppercase shrink-0">
@@ -344,6 +395,21 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-3">
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-md text-slate-6 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLead(l);
+                      }}
+                      disabled={deletingLeadId === l.id}
+                      aria-label={`Excluir lead ${l.name || l.id}`}
+                      title="Excluir lead"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <Badge
                     style={{
                       backgroundColor: `${STAGE_COLORS[l.stage as LeadStage]}12`,
@@ -354,10 +420,12 @@ export default function DashboardClient({ stats }: { stats: DashboardStats }) {
                   >
                     {STAGE_LABELS[l.stage as LeadStage]}
                   </Badge>
-                  <span className="text-[11px] text-slate-6 font-mono w-8 text-right">{timeAgo(l.created_at)}</span>
+                  <span className="text-[11px] text-slate-6 font-mono w-10 text-right">
+                    {deletingLeadId === l.id ? '...' : timeAgo(l.created_at)}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

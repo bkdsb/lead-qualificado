@@ -8,6 +8,12 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
   // Fetch dashboard stats
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -50,7 +56,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell>
-      <DashboardClient stats={stats} />
+      <DashboardClient stats={stats} userRole={dbUser?.role === 'admin' ? 'admin' : 'operator'} />
     </AppShell>
   );
 }

@@ -23,6 +23,7 @@ export default async function SettingsPage() {
       <SettingsClient
         settings={settings || []}
         credentialRefs={credRefs || []}
+        currentUserEmail={user.email || ''}
       />
     </AppShell>
   );
