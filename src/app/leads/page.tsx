@@ -18,7 +18,7 @@ export default async function LeadsPage() {
 
   return (
     <AppShell initialUserRole={initialUserRole}>
-      <LeadsClient />
+      <LeadsClient userRole={initialUserRole || 'operator'} />
     </AppShell>
   );
 }

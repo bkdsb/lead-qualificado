@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Phone, Mail, Globe, Send, Activity, ShieldCheck, CheckCircle2, AlertTriangle, ChevronRight, ChevronDown, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Globe, Send, Activity, ShieldCheck, CheckCircle2, AlertTriangle, ChevronRight, ChevronDown, MessageCircle, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ export default function LeadDetailClient({ leadId, userRole = 'operator', userNa
   const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'proposals' | 'technical'>('timeline');
   const [showStageMenu, setShowStageMenu] = useState(false);
   const [showEventMenu, setShowEventMenu] = useState(false);
+  const [deletingLead, setDeletingLead] = useState(false);
 
   // Modal states
   const [showDispatch, setShowDispatch] = useState(false);
@@ -98,6 +99,30 @@ export default function LeadDetailClient({ leadId, userRole = 'operator', userNa
       method: 'DELETE',
     });
     fetchData();
+  }
+
+  async function handleDeleteLead() {
+    const leadName = data?.lead.name || 'Sem nome';
+    const confirmed = window.confirm(`Excluir o lead "${leadName}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeletingLead(true);
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result?.error || 'Erro ao excluir lead');
+        return;
+      }
+
+      toast.success('Lead excluído com sucesso');
+      router.push('/leads');
+    } catch {
+      toast.error('Erro de rede ao excluir lead');
+    } finally {
+      setDeletingLead(false);
+    }
   }
 
   async function handleAddNote(e: React.FormEvent) {
@@ -220,6 +245,19 @@ export default function LeadDetailClient({ leadId, userRole = 'operator', userNa
                 </div>
               )}
             </div>
+          )}
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={handleDeleteLead}
+              disabled={deletingLead}
+              className="text-slate-7 hover:text-red-400 hover:bg-red-500/10"
+              aria-label={`Excluir lead ${lead.name || lead.id}`}
+              title="Excluir lead"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
           )}
           {isAdmin && (
             <div className="relative">

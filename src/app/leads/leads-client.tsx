@@ -3,21 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_LABELS, SCORE_BAND_LABELS, STAGE_COLORS } from '@/lib/utils/constants';
-import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
+import type { DbLead, LeadStage, ScoreBand, UserRole } from '@/types/database';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton, SkeletonTableRow, SkeletonLeadCard } from '@/components/ui/skeleton';
 import KanbanBoard from '@/components/ui/kanban-board';
-import { Search, Plus, Filter, ChevronLeft, ChevronRight, ArrowRight, LayoutGrid, List, Download } from 'lucide-react';
+import { Search, Plus, Filter, ChevronLeft, ChevronRight, ArrowRight, LayoutGrid, List, Download, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { timeAgo } from '@/lib/utils';
 
 type ViewMode = 'table' | 'kanban';
 
-export default function LeadsClient() {
+export default function LeadsClient({ userRole = 'operator' }: { userRole?: UserRole }) {
   const router = useRouter();
   const [leads, setLeads] = useState<DbLead[]>([]);
   const [total, setTotal] = useState(0);
@@ -26,7 +26,8 @@ export default function LeadsClient() {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
 
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -36,6 +37,8 @@ export default function LeadsClient() {
 
   // For kanban, fetch ALL leads (no pagination)
   const isKanban = viewMode === 'kanban';
+  const isAdmin = userRole === 'admin';
+  const tableColCount = isAdmin ? 5 : 4;
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -71,6 +74,36 @@ export default function LeadsClient() {
       toast.error('Erro ao criar lead');
     }
     setCreating(false);
+  }
+
+  async function handleDeleteLead(lead: DbLead) {
+    const confirmed = window.confirm(`Excluir o lead "${lead.name || 'Sem nome'}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeletingLeadId(lead.id);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result?.error || 'Erro ao excluir lead');
+        return;
+      }
+
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      setTotal(prev => Math.max(0, prev - 1));
+      toast.success('Lead excluído com sucesso');
+
+      if (leads.length === 1 && page > 1) {
+        setPage(p => Math.max(1, p - 1));
+      } else {
+        fetchLeads();
+      }
+    } catch {
+      toast.error('Erro de rede ao excluir lead');
+    } finally {
+      setDeletingLeadId(null);
+    }
   }
 
   async function handleKanbanStageChange(leadId: string, toStage: LeadStage, purchaseValue?: number): Promise<boolean> {
@@ -207,6 +240,9 @@ export default function LeadsClient() {
               leads={leads}
               onStageChange={handleKanbanStageChange}
               onRefresh={fetchLeads}
+              canDelete={isAdmin}
+              deletingLeadId={deletingLeadId}
+              onDeleteLead={handleDeleteLead}
             />
           </div>
         )
@@ -223,14 +259,15 @@ export default function LeadsClient() {
                   <th className="px-4 py-2.5 border-b border-white/[0.04]">Estágio</th>
                   <th className="px-4 py-2.5 border-b border-white/[0.04]">Score</th>
                   <th className="px-4 py-2.5 border-b border-white/[0.04] text-right">Entrada</th>
+                  {isAdmin && <th className="px-4 py-2.5 border-b border-white/[0.04] w-12" aria-label="Ações" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.03]">
                 {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} cols={4} />)
+                  Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} cols={tableColCount} />)
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-16 text-center">
+                    <td colSpan={tableColCount} className="px-4 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-slate-3 flex items-center justify-center">
                           <Search className="w-5 h-5 text-slate-6" />
@@ -274,6 +311,23 @@ export default function LeadsClient() {
                     <td className="px-4 py-3 text-right">
                       <span className="text-[12px] text-slate-6">{timeAgo(lead.created_at)}</span>
                     </td>
+                    {isAdmin && (
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-md text-slate-6 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLead(lead);
+                          }}
+                          disabled={deletingLeadId === lead.id}
+                          aria-label={`Excluir lead ${lead.name || lead.id}`}
+                          title="Excluir lead"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -311,6 +365,21 @@ export default function LeadsClient() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        className="p-1.5 rounded-md text-slate-6 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteLead(lead);
+                        }}
+                        disabled={deletingLeadId === lead.id}
+                        aria-label={`Excluir lead ${lead.name || lead.id}`}
+                        title="Excluir lead"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <Badge
                       style={{
                         backgroundColor: `${STAGE_COLORS[lead.stage as keyof typeof STAGE_COLORS]}12`,

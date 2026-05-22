@@ -26,7 +26,8 @@ import type { DbLead, LeadStage, ScoreBand } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Phone, Mail, ArrowRight, Zap, Loader2 } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Phone, Mail, ArrowRight, Zap, Loader2, Trash2 } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -35,62 +36,90 @@ const KANBAN_STAGES: LeadStage[] = ['new', 'contacted', 'conversing', 'proposal'
 interface KanbanCardProps {
   lead: DbLead;
   onDoubleClick: () => void;
+  canDelete?: boolean;
+  isDeleting?: boolean;
   isDragging?: boolean;
+  onDelete?: (lead: DbLead) => void;
 }
 
-function KanbanCard({ lead, onDoubleClick, isDragging }: KanbanCardProps) {
+function KanbanCard({ lead, onDoubleClick, canDelete = false, isDeleting = false, isDragging, onDelete }: KanbanCardProps) {
   return (
-    <div
-      className={cn(
-        "bg-surface border border-white/[0.06] rounded-lg p-3 cursor-grab active:cursor-grabbing",
-        "hover:border-white/[0.12] hover:bg-[#151514] transition-all duration-150",
-        isDragging && "opacity-50 scale-[0.98] ring-2 ring-white/10"
-      )}
-      onDoubleClick={onDoubleClick}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="font-medium text-[13px] text-slate-9 truncate leading-tight">
-          {lead.name || 'Sem nome'}
+    <Tooltip content="Dê dois cliques para abrir mais informações do lead">
+      <div
+        className={cn(
+          "group bg-surface border border-white/[0.06] rounded-lg p-3 cursor-grab active:cursor-grabbing",
+          "hover:border-white/[0.12] hover:bg-[#151514] transition-all duration-150",
+          isDragging && "opacity-50 scale-[0.98] ring-2 ring-white/10"
+        )}
+        onDoubleClick={onDoubleClick}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="font-medium text-[13px] text-slate-9 truncate leading-tight">
+            {lead.name || 'Sem nome'}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {canDelete && onDelete && (
+              <button
+                type="button"
+                className="p-1 -mt-1 rounded text-slate-6 opacity-0 transition-all hover:text-red-400 hover:bg-red-500/10 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(lead);
+                }}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={isDeleting}
+                aria-label={`Excluir lead ${lead.name || lead.id}`}
+                title="Excluir lead"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+            <span className="text-[10px] font-mono text-slate-6 mt-0.5">
+              {lead.score}pts
+            </span>
+          </div>
         </div>
-        <span className="text-[10px] font-mono text-slate-6 shrink-0 mt-0.5">
-          {lead.score}pts
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5 text-[11px] text-slate-6">
-        {lead.phone && (
-          <span className="flex items-center gap-1 truncate">
-            <Phone className="w-2.5 h-2.5" />
-            {lead.phone.replace(/^(\+55)/, '').slice(-4)}
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-6">
+          {lead.phone && (
+            <span className="flex items-center gap-1 truncate">
+              <Phone className="w-2.5 h-2.5" />
+              {lead.phone.replace(/^(\+55)/, '').slice(-4)}
+            </span>
+          )}
+          {lead.email && (
+            <span className="flex items-center gap-1 truncate">
+              <Mail className="w-2.5 h-2.5" />
+              {lead.email.split('@')[0]}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <Badge
+            variant="neutral"
+            className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-widest"
+            style={{
+              color: (() => {
+                const band = lead.score_band as ScoreBand;
+                if (band === 'ready') return '#22c55e';
+                if (band === 'hot') return '#f97316';
+                if (band === 'warm') return '#eab308';
+                return '#64748b';
+              })(),
+            }}
+          >
+            {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
+          </Badge>
+          <span className="text-[10px] text-slate-6 font-mono">
+            {timeAgo(lead.created_at)}
           </span>
-        )}
-        {lead.email && (
-          <span className="flex items-center gap-1 truncate">
-            <Mail className="w-2.5 h-2.5" />
-            {lead.email.split('@')[0]}
-          </span>
-        )}
+        </div>
       </div>
-      <div className="flex items-center justify-between mt-2">
-        <Badge
-          variant="neutral"
-          className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-widest"
-          style={{
-            color: (() => {
-              const band = lead.score_band as ScoreBand;
-              if (band === 'ready') return '#22c55e';
-              if (band === 'hot') return '#f97316';
-              if (band === 'warm') return '#eab308';
-              return '#64748b';
-            })(),
-          }}
-        >
-          {SCORE_BAND_LABELS[lead.score_band as ScoreBand]}
-        </Badge>
-        <span className="text-[10px] text-slate-6 font-mono">
-          {timeAgo(lead.created_at)}
-        </span>
-      </div>
-    </div>
+    </Tooltip>
   );
 }
 
@@ -174,17 +203,23 @@ function KanbanCardLoading({ lead, toStage }: { lead: DbLead; toStage: LeadStage
 function SortableCard({
   lead,
   onDoubleClick,
+  canDelete,
+  deletingLeadId,
   pendingMove,
   movingToStage,
   onConfirm,
-  onCancel
+  onCancel,
+  onDelete
 }: {
   lead: DbLead;
   onDoubleClick: () => void;
+  canDelete?: boolean;
+  deletingLeadId?: string | null;
   pendingMove?: PendingMove | null;
   movingToStage?: LeadStage | null;
   onConfirm?: (value?: number) => void;
   onCancel?: () => void;
+  onDelete?: (lead: DbLead) => void;
 }) {
   const {
     attributes,
@@ -217,7 +252,14 @@ function SortableCard({
       ) : isMoving ? (
         <KanbanCardLoading lead={lead} toStage={movingToStage} />
       ) : (
-        <KanbanCard lead={lead} onDoubleClick={onDoubleClick} isDragging={isDragging} />
+        <KanbanCard
+          lead={lead}
+          onDoubleClick={onDoubleClick}
+          canDelete={canDelete}
+          isDeleting={deletingLeadId === lead.id}
+          isDragging={isDragging}
+          onDelete={onDelete}
+        />
       )}
     </div>
   );
@@ -253,9 +295,12 @@ interface KanbanBoardProps {
   leads: DbLead[];
   onStageChange: (leadId: string, toStage: LeadStage, purchaseValue?: number) => Promise<boolean>;
   onRefresh: () => void;
+  canDelete?: boolean;
+  deletingLeadId?: string | null;
+  onDeleteLead?: (lead: DbLead) => void;
 }
 
-export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, onStageChange, onRefresh, canDelete = false, deletingLeadId = null, onDeleteLead }: KanbanBoardProps) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
@@ -460,10 +505,13 @@ export default function KanbanBoard({ leads, onStageChange, onRefresh }: KanbanB
                         key={lead.id}
                         lead={lead}
                         onDoubleClick={() => router.push(`/leads/${lead.id}`)}
+                        canDelete={canDelete}
+                        deletingLeadId={deletingLeadId}
                         pendingMove={pendingMove?.leadId === lead.id ? pendingMove : null}
                         movingToStage={movingLead?.id === lead.id ? movingLead.toStage : null}
                         onConfirm={confirmMove}
                         onCancel={cancelMove}
+                        onDelete={onDeleteLead}
                       />
                     ))
                   )}
